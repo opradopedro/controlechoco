@@ -257,7 +257,7 @@ textarea:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
   <!-- GASTOS -->
   <section id="tab-gastos" class="tab" hidden style="display:flex;flex-direction:column;gap:16px">
     <div class="bar">
-      <div class="left"><h2>Gastos</h2><p class="muted small">Embalagem, entrega, compras de estoque e outros custos do mês.</p></div>
+      <div class="left"><h2>Gastos</h2><p class="muted small">Embalagem, papelaria, estoque, materiais e gastos digitais do mês.</p></div>
       <label class="field" style="flex-direction:row;align-items:center;gap:8px"><span>Mês</span><input type="month" id="g-mes"></label>
     </div>
     <div class="panel">
@@ -266,8 +266,12 @@ textarea:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
         <label class="field"><span>Data</span><input type="date" id="g-data" required></label>
         <label class="field"><span>Categoria</span>
           <select id="g-cat"></select></label>
-        <label class="field" style="grid-column:span 2;min-width:0"><span>Descrição</span><input id="g-desc" placeholder="Ex.: motoboy entrega Ponta da Praia"></label>
-        <label class="field"><span>Valor (R$)</span><input id="g-valor" inputmode="decimal" placeholder="0,00" required></label>
+        <label class="field" style="grid-column:span 2;min-width:0"><span>Descrição</span><input id="g-desc" placeholder="Ex.: caixas para bolo de pote"></label>
+        <label class="field"><span>Valor total (R$)</span><input id="g-valor" inputmode="decimal" placeholder="0,00" required></label>
+        <label class="field"><span>Pagamento</span>
+          <select id="g-pag"></select></label>
+        <label class="field" id="g-parc-campo" hidden><span>Parcelas</span>
+          <select id="g-parc"></select></label>
         <div class="field" style="justify-content:flex-end"><button class="btn primary" type="submit">Lançar</button></div>
       </form>
     </div>
@@ -322,7 +326,16 @@ const fin=(v,d=3)=>(isFinite(v)?v:0).toLocaleString('pt-BR',{maximumFractionDigi
 const pct=v=>fmt(v,1)+'%';
 const fmtQtd=(v,u)=>{v=num(v);if(u==='g'&&Math.abs(v)>=1000)return fmt(v/1000,2)+' kg';if(u==='ml'&&Math.abs(v)>=1000)return fmt(v/1000,2)+' L';return fmt(v,1)+' '+u;};
 const hoje=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
-const CATS=['Ingredientes e estoque','Embalagem','Entrega','Outros'];
+const CATS=['Embalagem','Papelaria','Estoque','Materiais','Digital'];
+// gastos antigos lançados com as categorias anteriores
+const CAT_ANTIGA={'Ingredientes e estoque':'Estoque'};
+const catGasto=g=>CAT_ANTIGA[g.categoria]||g.categoria||'Outros';
+const PAGS=['Crédito','Débito','Pix','Dinheiro'];
+function pagTxt(g){
+  if(!g.pagamento)return '';
+  const n=num(g.parcelas);
+  return g.pagamento==='Crédito'&&n>1?`Crédito ${n}x de ${brl(num(g.valor)/n)}`:g.pagamento==='Crédito'?'Crédito à vista':g.pagamento;
+}
 const DEF={valorHora:15,gasPct:10,margem:30,taxaPct:0};
 
 const S={insumos:{},gastos:{},receitas:{},encomendas:{},config:{...DEF},mode:'loading',loaded:{},tab:'encomendas',insFiltro:'todos',recCat:'todas',recBusca:''};
@@ -351,9 +364,9 @@ const DEMO={
    embalagens:[{id:'ex-pote',qtd:1}]}
  },
  gastos:{
-  'ex-g1':{data:'2026-10-03',categoria:'Ingredientes e estoque',descricao:'Compra no atacadão',valor:86.4,exemplo:true},
-  'ex-g2':{data:'2026-10-05',categoria:'Embalagem',descricao:'Potes 250 ml (25 un)',valor:22.5,exemplo:true},
-  'ex-g3':{data:'2026-10-08',categoria:'Entrega',descricao:'Motoboy, 2 entregas',valor:24,exemplo:true}
+  'ex-g1':{data:'2026-10-03',categoria:'Estoque',descricao:'Compra no atacadão',valor:86.4,pagamento:'Crédito',parcelas:2,exemplo:true},
+  'ex-g2':{data:'2026-10-05',categoria:'Embalagem',descricao:'Potes 250 ml (25 un)',valor:22.5,pagamento:'Pix',parcelas:1,exemplo:true},
+  'ex-g3':{data:'2026-10-08',categoria:'Papelaria',descricao:'Etiquetas e tags',valor:24,pagamento:'Dinheiro',parcelas:1,exemplo:true}
  }
 };
 
@@ -846,7 +859,7 @@ function renderGastos(){
   const [y,m]=mes.split('-');const nomeMes=new Date(+y,+m-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
   $('#g-titulo').textContent='Resumo de '+nomeMes;
   $('#g-total').textContent=brl(tot);
-  const porCat={};CATS.forEach(c=>porCat[c]=0);list.forEach(([,g])=>porCat[g.categoria]=(porCat[g.categoria]||0)+num(g.valor));
+  const porCat={};CATS.forEach(c=>porCat[c]=0);list.forEach(([,g])=>{const c=catGasto(g);porCat[c]=(porCat[c]||0)+num(g.valor);});
   const max=Math.max(...Object.values(porCat),1);
   $('#g-cats').innerHTML=Object.entries(porCat).map(([c,v])=>`<div class="catbar"><span>${esc(c)}</span><span class="track"><i style="width:${v/max*100}%"></i></span><span class="val">${brl(v)}</span></div>`).join('');
   const el=$('#g-lista');
@@ -854,7 +867,7 @@ function renderGastos(){
   if(!list.length){el.innerHTML='<div class="empty">Nenhum gasto lançado neste mês.</div>';return;}
   el.innerHTML=list.map(([id,g])=>{const [,mm,dd]=String(g.data).split('-');return `<div class="gasto">
     <span class="muted">${dd}/${mm}</span>
-    <div style="min-width:0"><div style="overflow-wrap:anywhere">${esc(g.descricao||g.categoria)} ${g.exemplo?'<span class="chip ex">exemplo</span>':''}</div><div class="sub muted small">${esc(g.categoria)}</div></div>
+    <div style="min-width:0"><div style="overflow-wrap:anywhere">${esc(g.descricao||g.categoria)} ${g.exemplo?'<span class="chip ex">exemplo</span>':''}</div><div class="sub muted small">${esc(catGasto(g))}${g.pagamento?' · '+esc(pagTxt(g)):''}</div></div>
     <span class="v">${brl(num(g.valor))}</span>
     <button class="btn ghost danger" data-act="apagar-gasto" data-id="${id}" data-confirm aria-label="Apagar lançamento">✕</button></div>`;}).join('');
 }
@@ -955,13 +968,15 @@ document.addEventListener('submit',async e=>{
     if(n<=0){toast('Informe quantas embalagens comprou.');return;}
     const iid=COMPRA.id;COMPRA=null;
     const ok=await save('insumos',iid,{...clone(i),estoque:num(i.estoque)+n*num(i.qtdEmb),precoEmb:p||num(i.precoEmb)});
-    if(ok&&p>0)await save('gastos',newId('gastos'),{data,categoria:i.tipo==='embalagem'?'Embalagem':'Ingredientes e estoque',descricao:`Compra: ${i.nome} (${fmt(n,2)}×)`,valor:Math.round(n*p*100)/100});
+    if(ok&&p>0)await save('gastos',newId('gastos'),{data,categoria:i.tipo==='embalagem'?'Embalagem':'Estoque',descricao:`Compra: ${i.nome} (${fmt(n,2)}×)`,valor:Math.round(n*p*100)/100});
     renderInsumos();toast('Compra registrada');
   }
   else if(e.target.id==='g-form'){
     e.preventDefault();
     const v=num($('#g-valor').value);if(v<=0){toast('Informe o valor.');$('#g-valor').focus();return;}
-    const g={data:$('#g-data').value||hoje(),categoria:$('#g-cat').value,descricao:$('#g-desc').value.trim(),valor:Math.round(v*100)/100};
+    const pag=$('#g-pag').value;
+    const g={data:$('#g-data').value||hoje(),categoria:$('#g-cat').value,descricao:$('#g-desc').value.trim(),valor:Math.round(v*100)/100,
+      pagamento:pag,parcelas:pag==='Crédito'?num($('#g-parc').value)||1:1};
     if(await save('gastos',newId('gastos'),g)){$('#g-desc').value='';$('#g-valor').value='';$('#g-mes').value=g.data.slice(0,7);renderGastos();toast('Gasto lançado');}
   }
   else if(e.target.id==='cfg-form'){
@@ -998,6 +1013,10 @@ $('#rec-busca').addEventListener('input',e=>{S.recBusca=e.target.value;renderRec
 
 // ---------- Início ----------
 $('#g-cat').innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');
+$('#g-pag').innerHTML=PAGS.map(c=>`<option>${c}</option>`).join('');
+$('#g-parc').innerHTML=Array.from({length:24},(_,k)=>`<option value="${k+1}">${k?(k+1)+'x':'À vista (1x)'}</option>`).join('');
+$('#g-pag').addEventListener('change',e=>{$('#g-parc-campo').hidden=e.target.value!=='Crédito';});
+$('#g-pag').dispatchEvent(new Event('change'));
 $('#g-data').value=hoje();$('#g-mes').value=hoje().slice(0,7);
 try{const t=localStorage.getItem('choco-tab');if(t&&document.getElementById('tab-'+t))setTab(t);}catch(e){}
 renderAll();
