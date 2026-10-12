@@ -1,0 +1,1023 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Custos da Choco</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 44 44%22%3E%3Ccircle cx=%2222%22 cy=%2222%22 r=%2221%22 fill=%22%237B1E2E%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: caderno de confeitaria. Abas no topo, cards de receita com o preço em destaque, listas tipo ficha. */
+:root{
+  --bg:#FBF5F3; --surface:#FFFFFF; --sunk:#F5ECE9; --fg:#2A1715; --muted:#7D6560; --line:#EADBD6;
+  --wine:#7B1E2E; --wine-ink:#FFFFFF; --wine-soft:#F4E1E3; --cacao:#5A3A2A;
+  --ok:#2F7A4F; --ok-soft:#E3F1E8; --warn:#A85A17; --warn-soft:#FBEBDC; --bad:#B3261E; --bad-soft:#FBE3E1;
+  --f-display:"Young Serif", Georgia, "Times New Roman", serif;
+  --f-body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1A1110; --surface:#251817; --sunk:#201413; --fg:#F5E9E6; --muted:#B8A19B; --line:#3D2A27;
+  --wine:#E07A88; --wine-ink:#1A1110; --wine-soft:#3A1E22; --cacao:#D2A88C;
+  --ok:#6CC08E; --ok-soft:#1D3326; --warn:#E8A15C; --warn-soft:#3A2817; --bad:#F08A80; --bad-soft:#3E1C1A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1A1110; --surface:#251817; --sunk:#201413; --fg:#F5E9E6; --muted:#B8A19B; --line:#3D2A27;
+  --wine:#E07A88; --wine-ink:#1A1110; --wine-soft:#3A1E22; --cacao:#D2A88C;
+  --ok:#6CC08E; --ok-soft:#1D3326; --warn:#E8A15C; --warn-soft:#3A2817; --bad:#F08A80; --bad-soft:#3E1C1A; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5;padding:0 16px;font-variant-numeric:tabular-nums}
+.wrap{max-width:1040px;margin:0 auto;padding-block:20px 64px;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance;line-height:1.15}
+h2{font-size:1.5rem} h3{font-size:1.15rem}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.label{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+header.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header.top .brand{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+header.top h1{font-size:1.6rem;color:var(--wine)}
+.mode{font-size:.8rem;padding:4px 10px;border-radius:99px;background:var(--sunk);color:var(--muted)}
+.mode.live{background:var(--ok-soft);color:var(--ok)}
+.mode.demo{background:var(--warn-soft);color:var(--warn)}
+
+nav.tabs{display:flex;gap:4px;background:var(--sunk);padding:4px;border-radius:99px;overflow-x:auto;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+nav.tabs button{flex:1;white-space:nowrap;border:0;background:transparent;color:var(--muted);font:600 .92rem var(--f-body);padding:9px 14px;border-radius:99px;cursor:pointer}
+nav.tabs button[aria-selected="true"]{background:var(--surface);color:var(--wine);box-shadow:0 1px 3px rgba(60,20,20,.12)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:600 .88rem var(--f-body);padding:8px 14px;border-radius:99px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--wine)}
+.btn.primary{background:var(--wine);border-color:var(--wine);color:var(--wine-ink)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--wine)}
+.btn.danger{color:var(--bad)}
+.btn.danger.armed{background:var(--bad);border-color:var(--bad);color:var(--surface)}
+.btn:focus-visible,input:focus-visible,select:focus-visible,nav.tabs button:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+.bar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.bar .left{display:flex;flex-direction:column;gap:4px;min-width:0}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:14px}
+.panel.edit{border-color:var(--wine);box-shadow:0 0 0 3px var(--wine-soft)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card .head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.card .price{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.card .price strong{font-family:var(--f-display);font-weight:400;font-size:2rem;color:var(--wine);line-height:1}
+.kv{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:.9rem}
+.kv dt{color:var(--muted)} .kv dd{margin:0;text-align:right}
+.kv .sum{border-top:1px dashed var(--line);padding-top:6px;font-weight:700}
+.kv .sum + .sum{border-top:0;padding-top:0}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:.78rem;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.ex{background:var(--wine-soft);color:var(--wine)}
+
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field span{font-size:.8rem;color:var(--muted);font-weight:600}
+input,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+input[type=month]{width:auto}
+
+.rows{display:flex;flex-direction:column;gap:8px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 92px 34px 88px 34px;gap:8px;align-items:center}
+.row .u{color:var(--muted);font-size:.85rem}
+.row .c{text-align:right;font-size:.9rem}
+.rowhead{font-size:.75rem;color:var(--muted);font-weight:600}
+@media (max-width:520px){
+  .row{grid-template-columns:minmax(0,1fr) 78px 30px;grid-template-areas:"s q u" "c c x"}
+  .row .c{grid-column:1/3;text-align:left} .rowhead{display:none}
+}
+
+.calc{background:var(--sunk);border-radius:10px;padding:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+
+.list{display:flex;flex-direction:column}
+.item{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1.2fr) auto;gap:12px;align-items:center;padding:12px 4px;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.item .name{font-weight:600;overflow-wrap:anywhere}
+.item .sub{font-size:.82rem;color:var(--muted)}
+.meter{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden;margin-top:4px}
+.meter i{display:block;height:100%;background:var(--ok)}
+.meter i.low{background:var(--warn)} .meter i.out{background:var(--bad)}
+@media (max-width:640px){.item{grid-template-columns:minmax(0,1fr) auto}.item .hide-sm{display:none}}
+
+.gasto{display:grid;grid-template-columns:70px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line)}
+.gasto:last-child{border-bottom:0}
+.gasto .v{font-weight:700}
+.catbars{display:flex;flex-direction:column;gap:10px}
+.catbar{display:grid;grid-template-columns:150px minmax(0,1fr) 100px;gap:10px;align-items:center;font-size:.9rem}
+.catbar .track{height:10px;background:var(--sunk);border-radius:5px;overflow:hidden}
+.catbar .track i{display:block;height:100%;background:var(--wine);border-radius:5px}
+.catbar .val{text-align:right;font-weight:600}
+@media (max-width:520px){.catbar{grid-template-columns:110px minmax(0,1fr) 84px}.gasto{grid-template-columns:56px minmax(0,1fr) auto}.gasto .cat{display:none}}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.stat b{display:block;font-family:var(--f-display);font-weight:400;font-size:1.45rem;margin-top:2px}
+
+.seg{display:inline-flex;background:var(--sunk);border-radius:99px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;font:600 .82rem var(--f-body);color:var(--muted);padding:6px 12px;border-radius:99px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg)}
+
+.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:var(--r)}
+.notice{background:var(--wine-soft);color:var(--fg);border-radius:var(--r);padding:12px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:.9rem}
+.formula{font-size:.9rem;display:flex;flex-direction:column;gap:6px;max-width:65ch}
+.formula code{font-family:var(--f-body);background:var(--sunk);padding:2px 6px;border-radius:5px;font-weight:600}
+
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:99px;font-weight:600;font-size:.9rem;z-index:50;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:no-preference){.card,.panel{transition:border-color .15s}}
+
+.groups{display:flex;flex-direction:column;gap:22px}
+.group{display:flex;flex-direction:column;gap:10px}
+.ghead{display:flex;align-items:baseline;gap:10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.ghead h3{color:var(--cacao)}
+.search{max-width:260px;flex:1;min-width:160px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+#rec-cats{overflow-x:auto;max-width:100%}
+.specs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;background:var(--sunk);border-radius:10px;padding:10px}
+.specs div{display:flex;flex-direction:column;min-width:0}
+.specs .label{font-size:.66rem}
+.specs b{font-size:.92rem;font-weight:700}
+.specs small{font-size:.74rem;color:var(--muted);overflow-wrap:anywhere}
+@media (max-width:380px){.specs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pricebox{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:end}
+.pricebox div{display:flex;flex-direction:column;min-width:0}
+.pricebox strong{font-family:var(--f-display);font-weight:400;font-size:1.9rem;color:var(--wine);line-height:1.05}
+.pricebox small{font-size:.76rem}
+.pricebox b{font-size:1rem}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips:empty{display:none}
+details{border-top:1px solid var(--line);padding-top:8px}
+details summary{cursor:pointer;font-weight:600;font-size:.88rem;color:var(--cacao);list-style:none;display:flex;justify-content:space-between}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"+";color:var(--muted)}
+details[open] summary::after{content:"−"}
+details[open] summary{margin-bottom:8px}
+.ing{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:.88rem}
+.ing li{display:grid;grid-template-columns:minmax(0,1fr) auto 72px;gap:8px}
+.ing li span:last-child{text-align:right}
+.prep{font-size:.88rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.edgrid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+.edmain{display:flex;flex-direction:column;gap:14px;min-width:0}
+.edside{position:sticky;top:calc(64px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:12px}
+.edside .calc{display:flex;flex-direction:column;gap:6px}
+.edside .big{font-family:var(--f-display);font-weight:400;font-size:2rem;color:var(--wine);line-height:1}
+@media (max-width:860px){.edgrid{grid-template-columns:minmax(0,1fr)}.edside{position:static}}
+fieldset{border:1px solid var(--line);border-radius:10px;padding:12px 14px 14px;margin:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+legend{font-family:var(--f-display);font-size:1rem;padding:0 6px;color:var(--cacao)}
+.field.wide{grid-column:span 2}.field.full{grid-column:1/-1}
+@media (max-width:420px){.field.wide{grid-column:auto}}
+textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;resize:vertical}
+textarea:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
+.checks{display:flex;flex-wrap:wrap;gap:6px 14px}
+.checks label{display:flex;align-items:center;gap:6px;font-size:.9rem;color:var(--fg);font-weight:400}
+.checks input{width:auto;accent-color:var(--wine)}
+.erow{grid-template-columns:minmax(0,1fr) 84px 100px 92px 34px}
+@media (max-width:520px){.erow{grid-template-columns:minmax(0,1fr) 70px 80px}.erow .c{grid-column:1/3}}
+.card.enc.off{opacity:.6}
+.card.enc .head .chips{flex-direction:column;align-items:flex-end}
+</style>
+</head><body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
+        <circle cx="22" cy="22" r="21" fill="var(--wine)"/>
+        <path d="M29.5 14.5a10 10 0 1 0 0 15" fill="none" stroke="var(--wine-ink)" stroke-width="3.2" stroke-linecap="round"/>
+        <ellipse cx="22.5" cy="22" rx="3.6" ry="6.2" fill="var(--wine-ink)" opacity=".9"/>
+        <path d="M22.5 16.2v11.6" stroke="var(--wine)" stroke-width="1"/>
+      </svg>
+      <div style="min-width:0">
+        <h1>Confeitaria Choco</h1>
+        <p class="muted small">Custos, estoque e preço de venda</p>
+      </div>
+    </div>
+    <span id="mode" class="mode">Carregando…</span>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="encomendas" aria-selected="true">Encomendas</button>
+    <button role="tab" data-tab="receitas" aria-selected="false">Receitas</button>
+    <button role="tab" data-tab="insumos" aria-selected="false">Estoque</button>
+    <button role="tab" data-tab="gastos" aria-selected="false">Gastos</button>
+    <button role="tab" data-tab="ajustes" aria-selected="false">Ajustes</button>
+  </nav>
+
+  <div id="exnotice"></div>
+
+  <!-- ENCOMENDAS -->
+  <section id="tab-encomendas" class="tab" style="display:flex;flex-direction:column;gap:16px">
+    <div class="bar">
+      <div class="left"><h2>Encomendas</h2><p class="muted small">Pedidos dos clientes. Ao lançar, os ingredientes e embalagens saem do estoque.</p></div>
+      <button class="btn primary" data-act="enc-nova">+ Nova encomenda</button>
+    </div>
+    <div id="encstats" class="stats"></div>
+    <div id="enceditor"></div>
+    <div id="encomendas" class="groups"></div>
+  </section>
+
+  <!-- RECEITAS -->
+  <section id="tab-receitas" class="tab" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div class="bar">
+      <div class="left"><h2>Receitas e preços</h2><p class="muted small">Custo de cada unidade e quanto cobrar, com base nos preços do estoque.</p></div>
+      <button class="btn primary" data-act="nova-receita">+ Nova receita</button>
+    </div>
+    <div id="editor"></div>
+    <div class="bar">
+      <div class="seg" id="rec-cats" hidden></div>
+      <label class="field search"><span class="sr">Buscar receita</span><input id="rec-busca" type="search" placeholder="Buscar receita"></label>
+    </div>
+    <div id="receitas" class="groups"></div>
+  </section>
+
+  <!-- INSUMOS -->
+  <section id="tab-insumos" class="tab" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div class="bar">
+      <div class="left"><h2>Estoque</h2><p class="muted small">Ingredientes e embalagens, com o preço que você paga e quanto tem em casa.</p></div>
+      <button class="btn primary" data-act="novo-insumo">+ Novo item</button>
+    </div>
+    <div id="insstats" class="stats"></div>
+    <div id="insform"></div>
+    <div class="panel">
+      <div class="bar">
+        <div class="seg" id="insfiltro">
+          <button data-f="todos" aria-pressed="true">Todos</button>
+          <button data-f="ingrediente" aria-pressed="false">Ingredientes</button>
+          <button data-f="embalagem" aria-pressed="false">Embalagens</button>
+        </div>
+      </div>
+      <div id="insumos" class="list"></div>
+    </div>
+  </section>
+
+  <!-- GASTOS -->
+  <section id="tab-gastos" class="tab" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div class="bar">
+      <div class="left"><h2>Gastos</h2><p class="muted small">Embalagem, entrega, compras de estoque e outros custos do mês.</p></div>
+      <label class="field" style="flex-direction:row;align-items:center;gap:8px"><span>Mês</span><input type="month" id="g-mes"></label>
+    </div>
+    <div class="panel">
+      <h3>Lançar gasto</h3>
+      <form id="g-form" class="fields">
+        <label class="field"><span>Data</span><input type="date" id="g-data" required></label>
+        <label class="field"><span>Categoria</span>
+          <select id="g-cat"></select></label>
+        <label class="field" style="grid-column:span 2;min-width:0"><span>Descrição</span><input id="g-desc" placeholder="Ex.: motoboy entrega Ponta da Praia"></label>
+        <label class="field"><span>Valor (R$)</span><input id="g-valor" inputmode="decimal" placeholder="0,00" required></label>
+        <div class="field" style="justify-content:flex-end"><button class="btn primary" type="submit">Lançar</button></div>
+      </form>
+    </div>
+    <div class="panel">
+      <div class="bar"><h3 id="g-titulo">Resumo do mês</h3><strong id="g-total" style="font-family:var(--f-display);font-weight:400;font-size:1.5rem;color:var(--wine)"></strong></div>
+      <div id="g-cats" class="catbars"></div>
+    </div>
+    <div class="panel">
+      <h3>Lançamentos</h3>
+      <div id="g-lista" class="list"></div>
+    </div>
+  </section>
+
+  <!-- AJUSTES -->
+  <section id="tab-ajustes" class="tab" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div class="left"><h2>Ajustes de preço</h2><p class="muted small">Valores usados em todas as receitas. Cada receita pode ter a própria margem.</p></div>
+    <div class="panel">
+      <form id="cfg-form" class="fields">
+        <label class="field"><span>Seu trabalho (R$ por hora)</span><input id="cfg-hora" inputmode="decimal"></label>
+        <label class="field"><span>Gás, luz e água (% sobre ingredientes)</span><input id="cfg-gas" inputmode="decimal"></label>
+        <label class="field"><span>Margem de lucro padrão (%)</span><input id="cfg-margem" inputmode="decimal"></label>
+        <label class="field"><span>Taxa de maquininha ou app (%)</span><input id="cfg-taxa" inputmode="decimal"></label>
+        <div class="field" style="justify-content:flex-end"><button class="btn primary" type="submit">Salvar ajustes</button></div>
+      </form>
+    </div>
+    <div class="panel">
+      <h3>Backup dos dados</h3>
+      <p class="muted small">Os dados ficam guardados só neste navegador. Baixe um backup de vez em quando e use o arquivo para passar tudo para outro celular ou computador.</p>
+      <div class="actions">
+        <button class="btn" data-act="exportar">Baixar backup</button>
+        <label class="btn">Restaurar backup<input type="file" id="importar" accept="application/json,.json" hidden></label>
+      </div>
+    </div>
+    <div class="panel formula">
+      <h3>Como o preço é calculado</h3>
+      <p><code>Ingredientes</code> soma a quantidade usada de cada item vezes o preço por grama, ml ou unidade da embalagem que você compra.</p>
+      <p><code>Gás, luz e água</code> entram como uma porcentagem dos ingredientes. <code>Mão de obra</code> é o tempo da receita vezes o seu valor por hora.</p>
+      <p>Tudo isso dividido pelo rendimento dá o custo de uma unidade. Somando a <code>embalagem</code> de cada unidade, chega no custo final.</p>
+      <p><code>Preço sugerido = custo ÷ (1 − margem − taxa)</code>. Assim a margem é calculada sobre o preço de venda, e não sobre o custo. O valor é arredondado para cima em R$ 0,50.</p>
+    </div>
+  </section>
+</div>
+<div id="toast" hidden></div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=s=>{if(typeof s==='number')return isFinite(s)?s:0;s=String(s??'').trim().replace(/\s|R\$/g,'');if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');else if(/^-?\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,'');const n=parseFloat(s);return isFinite(n)?n:0;};
+const brl=v=>(isFinite(v)?v:0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const fmt=(v,d=2)=>(isFinite(v)?v:0).toLocaleString('pt-BR',{maximumFractionDigits:d});
+const fin=(v,d=3)=>(isFinite(v)?v:0).toLocaleString('pt-BR',{maximumFractionDigits:d,useGrouping:false});
+const pct=v=>fmt(v,1)+'%';
+const fmtQtd=(v,u)=>{v=num(v);if(u==='g'&&Math.abs(v)>=1000)return fmt(v/1000,2)+' kg';if(u==='ml'&&Math.abs(v)>=1000)return fmt(v/1000,2)+' L';return fmt(v,1)+' '+u;};
+const hoje=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const CATS=['Ingredientes e estoque','Embalagem','Entrega','Outros'];
+const DEF={valorHora:15,gasPct:10,margem:30,taxaPct:0};
+
+const S={insumos:{},gastos:{},receitas:{},encomendas:{},config:{...DEF},mode:'loading',loaded:{},tab:'encomendas',insFiltro:'todos',recCat:'todas',recBusca:''};
+let db=null, E=null, INSF=null, COMPRA=null;
+
+// Dados de exemplo para quando a página roda fora do Claude (sem banco)
+const DEMO={
+ insumos:{
+  'ex-leitecond':{nome:'Leite condensado',tipo:'ingrediente',unidade:'g',qtdEmb:395,precoEmb:6.49,estoque:1580,minimo:790,exemplo:true},
+  'ex-creme':{nome:'Creme de leite',tipo:'ingrediente',unidade:'g',qtdEmb:200,precoEmb:3.29,estoque:600,minimo:400,exemplo:true},
+  'ex-chocpo':{nome:'Chocolate em pó 50%',tipo:'ingrediente',unidade:'g',qtdEmb:200,precoEmb:9.9,estoque:400,minimo:200,exemplo:true},
+  'ex-manteiga':{nome:'Manteiga sem sal',tipo:'ingrediente',unidade:'g',qtdEmb:200,precoEmb:11.9,estoque:150,minimo:200,exemplo:true},
+  'ex-granulado':{nome:'Chocolate granulado',tipo:'ingrediente',unidade:'g',qtdEmb:500,precoEmb:12.9,estoque:500,minimo:250,exemplo:true},
+  'ex-farinha':{nome:'Farinha de trigo',tipo:'ingrediente',unidade:'g',qtdEmb:1000,precoEmb:5.49,estoque:2000,minimo:1000,exemplo:true},
+  'ex-acucar':{nome:'Açúcar refinado',tipo:'ingrediente',unidade:'g',qtdEmb:1000,precoEmb:4.79,estoque:2000,minimo:1000,exemplo:true},
+  'ex-ovos':{nome:'Ovos',tipo:'ingrediente',unidade:'un',qtdEmb:12,precoEmb:13.9,estoque:18,minimo:12,exemplo:true},
+  'ex-forminha':{nome:'Forminha nº 4',tipo:'embalagem',unidade:'un',qtdEmb:100,precoEmb:4.9,estoque:150,minimo:100,exemplo:true},
+  'ex-pote':{nome:'Pote 250 ml com tampa',tipo:'embalagem',unidade:'un',qtdEmb:25,precoEmb:22.5,estoque:8,minimo:10,exemplo:true}
+ },
+ receitas:{
+  'ex-brigadeiro':{nome:'Brigadeiro tradicional',categoria:'Docinhos',descricao:'Brigadeiro de enrolar com granulado',pesoUn:15,validadeDias:5,armazenamento:'Temperatura ambiente',tempoForno:120,preparo:'Cozinhar leite condensado, chocolate e manteiga em fogo baixo até desgrudar da panela. Esfriar, enrolar 15 g e passar no granulado.',obs:'',alergenos:['Lactose','Soja'],rendimento:30,minutos:60,margem:'',precoAtual:2.5,exemplo:true,
+   itens:[{id:'ex-leitecond',qtd:395},{id:'ex-chocpo',qtd:30},{id:'ex-manteiga',qtd:15},{id:'ex-granulado',qtd:120}],
+   embalagens:[{id:'ex-forminha',qtd:1}]},
+  'ex-bolopote':{nome:'Bolo de pote de chocolate',categoria:'Bolos no pote',descricao:'Massa de chocolate com recheio de brigadeiro cremoso',pesoUn:220,validadeDias:4,armazenamento:'Geladeira',tempoForno:40,preparo:'Assar a massa a 180 °C por 35 a 40 min. Fazer o recheio com leite condensado, creme de leite e chocolate. Montar em camadas no pote.',obs:'Manter refrigerado',alergenos:['Glúten','Lactose','Ovo'],rendimento:10,minutos:90,margem:'',precoAtual:12,exemplo:true,
+   itens:[{id:'ex-farinha',qtd:240},{id:'ex-acucar',qtd:200},{id:'ex-ovos',qtd:3},{id:'ex-chocpo',qtd:80},{id:'ex-manteiga',qtd:50},{id:'ex-leitecond',qtd:395},{id:'ex-creme',qtd:200}],
+   embalagens:[{id:'ex-pote',qtd:1}]}
+ },
+ gastos:{
+  'ex-g1':{data:'2026-10-03',categoria:'Ingredientes e estoque',descricao:'Compra no atacadão',valor:86.4,exemplo:true},
+  'ex-g2':{data:'2026-10-05',categoria:'Embalagem',descricao:'Potes 250 ml (25 un)',valor:22.5,exemplo:true},
+  'ex-g3':{data:'2026-10-08',categoria:'Entrega',descricao:'Motoboy, 2 entregas',valor:24,exemplo:true}
+ }
+};
+
+// ---------- Armazenamento ----------
+const LS_KEY='choco-dados-v1', COLS=['insumos','receitas','gastos','encomendas'];
+function persist(){
+  if(S.mode!=='local')return true;
+  try{localStorage.setItem(LS_KEY,JSON.stringify({insumos:S.insumos,receitas:S.receitas,gastos:S.gastos,encomendas:S.encomendas,config:S.config}));return true;}
+  catch(e){toast('Não foi possível salvar neste navegador.');return false;}
+}
+function newId(col){return db?db.collection(col).doc().id:'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+async function save(col,id,data){
+  if(!db){S[col][id]=data;const ok=persist();renderAll();return ok;}
+  try{await db.collection(col).doc(id).set(data);return true;}
+  catch(e){toast(e&&e.code==='quota_exceeded'?'Limite de dados atingido. Apague itens antigos.':'Não foi possível salvar. Tente de novo.');return false;}
+}
+async function remove(col,id){
+  if(!db){delete S[col][id];persist();renderAll();return;}
+  try{await db.collection(col).doc(id).delete();}catch(e){toast('Não foi possível apagar.');}
+}
+async function saveConfig(c){
+  if(!db){S.config=c;persist();renderAll();return;}
+  try{await db.doc('config/geral').set(c);}catch(e){toast('Não foi possível salvar os ajustes.');}
+}
+function clone(o){return JSON.parse(JSON.stringify(o||{}));}
+
+let toastT;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2600);}
+
+// ---------- Cálculos ----------
+function custoUn(i){return i&&num(i.qtdEmb)>0?num(i.precoEmb)/num(i.qtdEmb):0;}
+function custoRef(i){const c=custoUn(i);if(i.unidade==='g')return brl(c*1000)+'/kg';if(i.unidade==='ml')return brl(c*1000)+'/L';return brl(c)+'/un';}
+function calc(r){
+  const cfg=S.config;let ingr=0,emb=0,faltando=0;
+  (r.itens||[]).forEach(it=>{const i=S.insumos[it.id];if(!i){if(it.id)faltando++;return;}ingr+=num(it.qtd)*custoUn(i);});
+  (r.embalagens||[]).forEach(it=>{const i=S.insumos[it.id];if(!i){if(it.id)faltando++;return;}emb+=num(it.qtd)*custoUn(i);});
+  const gas=ingr*num(cfg.gasPct)/100, mo=num(r.minutos)/60*num(cfg.valorHora);
+  const rend=Math.max(1,num(r.rendimento)||1), lote=ingr+gas+mo, unit=lote/rend+emb;
+  const margem=(r.margem!==''&&r.margem!=null)?num(r.margem):num(cfg.margem), taxa=num(cfg.taxaPct);
+  const den=1-(margem+taxa)/100, preco=den>0?unit/den:NaN, precoR=isFinite(preco)?Math.ceil(preco*2-1e-9)/2:NaN;
+  const lucro=precoR*(1-taxa/100)-unit, pa=num(r.precoAtual);
+  const margemAtual=pa>0?(pa*(1-taxa/100)-unit)/pa*100:null;
+  return {ingr,emb,gas,mo,lote,unit,rend,margem,taxa,preco,precoR,lucro,pa,margemAtual,faltando,den};
+}
+
+// ---------- Render ----------
+function renderAll(){
+  const m=$('#mode');
+  if(S.mode==='live'){m.className='mode live';m.textContent='Salvando na nuvem';}
+  else if(S.mode==='local'){m.className='mode live';m.textContent='Salvo neste aparelho';}
+  else if(S.mode==='demo'){m.className='mode demo';m.textContent='Modo demonstração';}
+  renderNotice();renderReceitas();renderEncomendas();renderInsumos();renderGastos();renderCfg();
+  if(E)updateEditorCalc();
+  if(ENC)updateEncCalc();
+}
+function hasExemplos(){return ['insumos','receitas','gastos'].some(c=>Object.values(S[c]).some(d=>d.exemplo));}
+function renderNotice(){
+  const el=$('#exnotice');
+  let h='';
+  if(S.mode==='demo')h+=`<div class="notice"><span>Este navegador não permite guardar dados (modo anônimo?). Agora você vê um exemplo que não fica guardado.</span></div>`;
+  if(hasExemplos()&&S.mode!=='demo')h+=`<div class="notice"><span>Os itens marcados como <span class="chip ex">exemplo</span> servem para você ver como funciona. Edite ou apague quando lançar os seus.</span><button class="btn danger" data-act="apagar-exemplos" data-confirm>Apagar exemplos</button></div>`;
+  el.innerHTML=h;el.style.display=h?'flex':'none';el.style.flexDirection='column';el.style.gap='8px';
+}
+
+function margemChip(c){
+  if(c.margemAtual==null)return '';
+  const cls=c.margemAtual<0?'bad':c.margemAtual<c.margem-0.5?'warn':'ok';
+  const txt=c.margemAtual<0?'prejuízo':'margem '+pct(c.margemAtual);
+  return `<span class="chip ${cls}">Hoje ${brl(c.pa)} · ${txt}</span>`;
+}
+const CATS_REC=['Docinhos','Bolos','Bolos no pote','Tortas','Sobremesas','Salgados','Outros'];
+const ALERG=['Glúten','Lactose','Ovo','Amendoim','Castanhas','Soja'];
+const ARM=['Temperatura ambiente','Geladeira','Freezer'];
+function dataBR(d){return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});}
+function specs(r,c){
+  const peso=num(r.pesoUn), val=num(r.validadeDias);
+  return `<div class="specs">
+    <div><span class="label">Rende</span><b>${fmt(c.rend,0)} un</b></div>
+    <div><span class="label">Peso</span><b>${peso?fmt(peso,0)+' g/un':'—'}</b>${peso?`<small>lote ${fmtQtd(peso*c.rend,'g')}</small>`:''}</div>
+    <div><span class="label">Validade</span><b>${val?fmt(val,0)+(val==1?' dia':' dias'):'—'}</b>${r.armazenamento?`<small>${esc(r.armazenamento)}</small>`:''}</div>
+    <div><span class="label">Trabalho</span><b>${fmt(num(r.minutos),0)} min</b>${num(r.tempoForno)?`<small>+ ${fmt(num(r.tempoForno),0)} min forno/geladeira</small>`:''}</div>
+  </div>`;
+}
+function fichaHTML(r){
+  const li=(arr,mult)=>(arr||[]).map(it=>{const i=S.insumos[it.id];if(!i)return '';const q=num(it.qtd);
+    return `<li><span>${esc(i.nome)}</span><span class="muted">${fmtQtd(q,i.unidade)}${mult?' por un':''}</span><span>${brl(q*custoUn(i))}</span></li>`;}).join('');
+  return `<ul class="ing">${li(r.itens)||'<li class="muted">Sem ingredientes</li>'}</ul>
+    ${(r.embalagens||[]).length?`<div class="label" style="margin-top:10px">Embalagem</div><ul class="ing">${li(r.embalagens,true)}</ul>`:''}
+    ${r.preparo?`<div class="label" style="margin-top:10px">Modo de preparo</div><p class="prep">${esc(r.preparo)}</p>`:''}
+    ${r.obs?`<div class="label" style="margin-top:10px">Observações</div><p class="prep">${esc(r.obs)}</p>`:''}`;
+}
+function cardHTML(id,r){
+  const c=calc(r);const peso=num(r.pesoUn);
+  const al=(r.alergenos||[]);
+  return `<article class="card">
+    <div class="head"><div style="min-width:0"><h3>${esc(r.nome)}</h3>${r.descricao?`<p class="muted small">${esc(r.descricao)}</p>`:''}</div>
+      ${r.exemplo?'<span class="chip ex">exemplo</span>':''}</div>
+    ${specs(r,c)}
+    <div class="pricebox">
+      <div><span class="label">Preço sugerido</span><strong>${isFinite(c.precoR)?brl(c.precoR):'—'}</strong><small class="muted">por unidade${peso&&isFinite(c.precoR)?' · '+brl(c.precoR/peso*100)+'/100 g':''}</small></div>
+      <div><span class="label">Custo</span><b>${brl(c.unit)}</b></div>
+      <div><span class="label">Lucro</span><b style="color:var(--ok)">${isFinite(c.lucro)?brl(c.lucro):'—'}</b></div>
+    </div>
+    <div class="chips">${margemChip(c)}${al.map(a=>`<span class="chip">Contém ${esc(a.toLowerCase())}</span>`).join('')}
+      ${c.faltando?`<span class="chip warn">${c.faltando} item(ns) apagado(s) do estoque</span>`:''}
+      ${c.den<=0?'<span class="chip bad">Margem + taxa passam de 100%</span>':''}</div>
+    <details><summary>Custos detalhados</summary>
+      <dl class="kv">
+        <dt>Ingredientes do lote</dt><dd>${brl(c.ingr)}</dd>
+        <dt>Gás, luz e água</dt><dd>${brl(c.gas)}</dd>
+        <dt>Mão de obra</dt><dd>${brl(c.mo)}</dd>
+        <dt class="sum">Custo do lote</dt><dd class="sum">${brl(c.lote)}</dd>
+        <dt>Lote ÷ ${fmt(c.rend,0)} un</dt><dd>${brl(c.lote/c.rend)}</dd>
+        <dt>Embalagem por un</dt><dd>${brl(c.emb)}</dd>
+        <dt class="sum">Custo por unidade</dt><dd class="sum">${brl(c.unit)}</dd>
+        <dt>Margem${c.taxa?' + taxa':''}</dt><dd>${pct(c.margem)}${c.taxa?' + '+pct(c.taxa):''}</dd>
+      </dl></details>
+    <details><summary>Ficha técnica</summary>${fichaHTML(r)}</details>
+    <div class="actions">
+      <button class="btn" data-act="editar-receita" data-id="${id}">Editar</button>
+      <button class="btn ghost" data-act="produzir" data-id="${id}" data-confirm title="Desconta 1 lote do estoque">Produzi 1 lote</button>
+    </div>
+  </article>`;
+}
+function renderReceitas(){
+  const el=$('#receitas'), filt=$('#rec-cats');
+  const all=Object.entries(S.receitas);
+  const cats=[...new Set(all.map(([,r])=>r.categoria||'Outros'))].sort((a,b)=>CATS_REC.indexOf(a)-CATS_REC.indexOf(b));
+  if(S.recCat!=='todas'&&!cats.includes(S.recCat))S.recCat='todas';
+  filt.innerHTML=cats.length>1?['todas',...cats].map(c=>`<button data-rc="${esc(c)}" aria-pressed="${S.recCat===c}">${c==='todas'?'Todas':esc(c)}</button>`).join(''):'';
+  filt.hidden=cats.length<=1;
+  if((S.mode==='loading'||S.mode==='live')&&!S.loaded.receitas){el.innerHTML='<div class="empty">Carregando receitas…</div>';return;}
+  if(!all.length){el.innerHTML='<div class="empty">Nenhuma receita ainda. Cadastre os itens no Estoque e depois toque em <b>+ Nova receita</b>.</div>';return;}
+  const q=S.recBusca.trim().toLowerCase();
+  const list=all.filter(([,r])=>(S.recCat==='todas'||(r.categoria||'Outros')===S.recCat)&&(!q||String(r.nome).toLowerCase().includes(q)))
+    .sort((a,b)=>String(a[1].nome).localeCompare(b[1].nome,'pt-BR'));
+  if(!list.length){el.innerHTML='<div class="empty">Nenhuma receita encontrada com esse filtro.</div>';return;}
+  const groups={};list.forEach(([id,r])=>{(groups[r.categoria||'Outros']=groups[r.categoria||'Outros']||[]).push([id,r]);});
+  el.innerHTML=Object.keys(groups).sort((a,b)=>CATS_REC.indexOf(a)-CATS_REC.indexOf(b)).map(g=>
+    `<section class="group"><div class="ghead"><h3>${esc(g)}</h3><span class="muted small">${groups[g].length} ${groups[g].length==1?'receita':'receitas'}</span></div>
+     <div class="grid">${groups[g].map(([id,r])=>cardHTML(id,r)).join('')}</div></section>`).join('');
+}
+
+// ---------- Editor de receita ----------
+function opts(tipo,sel){
+  const arr=Object.entries(S.insumos).filter(([,i])=>i.tipo===tipo).sort((a,b)=>String(a[1].nome).localeCompare(b[1].nome,'pt-BR'));
+  return `<option value="">Escolha…</option>`+arr.map(([id,i])=>`<option value="${id}" ${id===sel?'selected':''}>${esc(i.nome)}</option>`).join('');
+}
+function rowsHTML(kind){
+  const list=E.data[kind];
+  const tipo=kind==='itens'?'ingrediente':'embalagem';
+  if(!Object.values(S.insumos).some(i=>i.tipo===tipo))return `<p class="muted small">Cadastre ${tipo==='ingrediente'?'ingredientes':'embalagens'} na aba Estoque para usar aqui.</p>`;
+  return `<div class="row rowhead"><span>Item</span><span>${kind==='itens'?'Qtd no lote':'Qtd por unidade'}</span><span></span><span style="text-align:right">Custo</span><span></span></div>`+
+  list.map((it,k)=>{const i=S.insumos[it.id];return `<div class="row" data-kind="${kind}" data-k="${k}">
+    <select data-f="id" aria-label="Item">${opts(tipo,it.id)}</select>
+    <input data-f="qtd" inputmode="decimal" value="${esc(it.qtd===''?'':fin(num(it.qtd),3))}" aria-label="Quantidade">
+    <span class="u">${i?esc(i.unidade):''}</span>
+    <span class="c" data-cost>${brl(num(it.qtd)*custoUn(i))}</span>
+    <button class="btn ghost" data-act="rm-row" aria-label="Remover linha">✕</button></div>`;}).join('')+
+  `<div><button class="btn ghost" data-act="add-row" data-kind="${kind}">+ Adicionar ${tipo}</button></div>`;
+}
+function openEditor(id){
+  const base=id?clone(S.receitas[id]):{nome:'',categoria:'Docinhos',descricao:'',rendimento:'',pesoUn:'',validadeDias:'',armazenamento:'Temperatura ambiente',minutos:'',tempoForno:'',margem:'',precoAtual:'',preparo:'',obs:'',alergenos:[],itens:[{id:'',qtd:''}],embalagens:[{id:'',qtd:''}]};
+  base.itens=base.itens||[];base.embalagens=base.embalagens||[];base.alergenos=base.alergenos||[];
+  E={id:id||null,data:base};renderEditor();
+  $('#editor').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+}
+const vIn=v=>v===''||v==null?'':fin(num(v),3);
+function renderEditor(){
+  const el=$('#editor');
+  if(!E){el.innerHTML='';return;}
+  const d=E.data;
+  const sel=(key,arr)=>`<select id="e-${key}" data-e="${key}">${arr.map(o=>`<option ${d[key]===o?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  el.innerHTML=`<div class="panel edit">
+    <div class="bar"><h3>${E.id?'Editar receita':'Nova receita'}</h3>${d.exemplo?'<span class="chip ex">exemplo</span>':''}</div>
+    <div class="edgrid">
+      <div class="edmain">
+        <fieldset><legend>Produto</legend><div class="fields">
+          <label class="field wide"><span>Nome</span><input id="e-nome" data-e="nome" value="${esc(d.nome)}" placeholder="Ex.: Brigadeiro gourmet"></label>
+          <label class="field"><span>Categoria</span>${sel('categoria',CATS_REC)}</label>
+          <label class="field full"><span>Descrição curta (opcional)</span><input id="e-desc" data-e="descricao" value="${esc(d.descricao)}" placeholder="Ex.: Chocolate 50% com granulado belga"></label>
+        </div></fieldset>
+        <fieldset><legend>Rendimento, peso e validade</legend><div class="fields">
+          <label class="field"><span>Rende (unidades)</span><input id="e-rend" data-e="rendimento" inputmode="decimal" value="${vIn(d.rendimento)}"></label>
+          <label class="field"><span>Peso por unidade (g)</span><input id="e-peso" data-e="pesoUn" inputmode="decimal" value="${vIn(d.pesoUn)}" placeholder="Ex.: 15"></label>
+          <label class="field"><span>Validade (dias)</span><input id="e-val" data-e="validadeDias" inputmode="decimal" value="${vIn(d.validadeDias)}" placeholder="Ex.: 5"></label>
+          <label class="field"><span>Armazenar em</span>${sel('armazenamento',ARM)}</label>
+          <label class="field"><span>Tempo de trabalho (min)</span><input id="e-min" data-e="minutos" inputmode="decimal" value="${vIn(d.minutos)}"></label>
+          <label class="field"><span>Forno ou geladeira (min)</span><input id="e-forno" data-e="tempoForno" inputmode="decimal" value="${vIn(d.tempoForno)}" placeholder="opcional"></label>
+        </div><p class="muted small" id="e-pesolote"></p></fieldset>
+        <fieldset><legend>Ingredientes do lote</legend><div class="rows" id="e-itens">${rowsHTML('itens')}</div></fieldset>
+        <fieldset><legend>Embalagem de cada unidade</legend><div class="rows" id="e-emb">${rowsHTML('embalagens')}</div></fieldset>
+        <fieldset><legend>Preparo e alergênicos</legend>
+          <label class="field"><span>Modo de preparo</span><textarea id="e-prep" data-e="preparo" rows="4" placeholder="Passo a passo, ponto da massa, temperatura do forno…">${esc(d.preparo)}</textarea></label>
+          <div class="field"><span>Contém</span><div class="checks">${ALERG.map(a=>`<label><input type="checkbox" data-alerg="${esc(a)}" ${d.alergenos.includes(a)?'checked':''}> ${esc(a)}</label>`).join('')}</div></div>
+          <label class="field"><span>Observações</span><input id="e-obs" data-e="obs" value="${esc(d.obs)}" placeholder="Ex.: servir gelado, não congelar"></label>
+        </fieldset>
+        <fieldset><legend>Preço</legend><div class="fields">
+          <label class="field"><span>Margem de lucro (%)</span><input id="e-margem" data-e="margem" inputmode="decimal" value="${vIn(d.margem)}" placeholder="padrão ${fmt(num(S.config.margem),1)}"></label>
+          <label class="field"><span>Preço que cobra hoje (R$)</span><input id="e-pa" data-e="precoAtual" inputmode="decimal" value="${d.precoAtual===''||d.precoAtual==null?'':fin(num(d.precoAtual),2)}" placeholder="opcional"></label>
+        </div></fieldset>
+      </div>
+      <aside class="edside"><div class="calc" id="e-calc"></div>
+        <div class="actions">
+          <button class="btn primary" data-act="salvar-receita">Salvar receita</button>
+          <button class="btn" data-act="cancelar-receita">Cancelar</button>
+          ${E.id?'<button class="btn danger" data-act="apagar-receita" data-confirm>Apagar</button>':''}
+        </div></aside>
+    </div></div>`;
+  updateEditorCalc();
+}
+function updateEditorCalc(){
+  const el=$('#e-calc');if(!el)return;
+  const d=E.data,c=calc(d);
+  document.querySelectorAll('#editor .row[data-kind]').forEach(row=>{
+    const it=d[row.dataset.kind][+row.dataset.k];if(!it)return;const i=S.insumos[it.id];
+    row.querySelector('[data-cost]').textContent=brl(num(it.qtd)*custoUn(i));
+    row.querySelector('.u').textContent=i?i.unidade:'';
+  });
+  const peso=num(d.pesoUn);
+  let massa=0;(d.itens||[]).forEach(it=>{const i=S.insumos[it.id];if(i&&i.unidade!=='un')massa+=num(it.qtd);});
+  const pl=$('#e-pesolote');
+  if(pl)pl.textContent=peso&&num(d.rendimento)?`Lote pronto: ${fmtQtd(peso*num(d.rendimento),'g')}. Ingredientes medidos em g/ml somam ${fmtQtd(massa,'g')}.`:'';
+  el.innerHTML=`<div class="label">Preço sugerido por unidade</div>
+    <strong class="big">${isFinite(c.precoR)?brl(c.precoR):'—'}</strong>
+    ${peso&&isFinite(c.precoR)?`<p class="muted small">${brl(c.precoR/peso*100)} a cada 100 g</p>`:''}
+    <dl class="kv">
+      <dt>Ingredientes do lote</dt><dd>${brl(c.ingr)}</dd>
+      <dt>Gás, luz e água (${pct(num(S.config.gasPct))})</dt><dd>${brl(c.gas)}</dd>
+      <dt>Mão de obra (${brl(num(S.config.valorHora))}/h)</dt><dd>${brl(c.mo)}</dd>
+      <dt class="sum">Custo do lote</dt><dd class="sum">${brl(c.lote)}</dd>
+      <dt>Lote ÷ ${fmt(c.rend,0)} un</dt><dd>${brl(c.lote/c.rend)}</dd>
+      <dt>Embalagem por un</dt><dd>${brl(c.emb)}</dd>
+      <dt class="sum">Custo por unidade</dt><dd class="sum">${brl(c.unit)}</dd>
+      <dt>Lucro por unidade</dt><dd style="color:var(--ok)">${isFinite(c.lucro)?brl(c.lucro):'—'}</dd>
+      ${c.margemAtual!=null?`<dt>Margem no preço de hoje</dt><dd style="color:var(${c.margemAtual<0?'--bad':c.margemAtual<c.margem-0.5?'--warn':'--ok'})">${pct(c.margemAtual)}</dd>`:''}
+    </dl>`;
+}
+async function salvarReceita(){
+  const d=clone(E.data);
+  if(!String(d.nome).trim()){toast('Dê um nome para a receita.');$('#e-nome').focus();return;}
+  if(num(d.rendimento)<=0){toast('Informe quantas unidades a receita rende.');$('#e-rend').focus();return;}
+  const opt=v=>String(v??'').trim()===''?'':num(v);
+  d.nome=String(d.nome).trim();d.descricao=String(d.descricao||'').trim();d.preparo=String(d.preparo||'').trim();d.obs=String(d.obs||'').trim();
+  d.rendimento=num(d.rendimento);d.minutos=num(d.minutos);
+  d.pesoUn=opt(d.pesoUn);d.validadeDias=opt(d.validadeDias);d.tempoForno=opt(d.tempoForno);d.margem=opt(d.margem);d.precoAtual=opt(d.precoAtual);
+  d.itens=d.itens.filter(i=>i.id).map(i=>({id:i.id,qtd:num(i.qtd)}));
+  d.embalagens=d.embalagens.filter(i=>i.id).map(i=>({id:i.id,qtd:num(i.qtd)}));
+  const id=E.id||newId('receitas');
+  if(await save('receitas',id,d)){E=null;renderEditor();renderReceitas();toast('Receita salva');}
+}
+// ---------- Encomendas ----------
+let ENC=null;
+const ST_CHIP={Confirmada:'warn',Entregue:'ok',Cancelada:'bad'};
+function precoPadrao(r){const c=calc(r);return num(r.precoAtual)>0?num(r.precoAtual):(isFinite(c.precoR)?c.precoR:0);}
+function consumo(itens){
+  const u={};
+  (itens||[]).forEach(it=>{const r=S.receitas[it.receitaId];const q=num(it.qtd);if(!r||q<=0)return;
+    const f=q/Math.max(1,num(r.rendimento)||1);
+    (r.itens||[]).forEach(x=>{if(x.id)u[x.id]=(u[x.id]||0)+num(x.qtd)*f;});
+    (r.embalagens||[]).forEach(x=>{if(x.id)u[x.id]=(u[x.id]||0)+num(x.qtd)*q;});
+  });
+  for(const k in u)u[k]=Math.round(u[k]*1000)/1000;
+  return u;
+}
+function resumoEnc(o){
+  let venda=0,custo=0;
+  (o.itens||[]).forEach(it=>{const r=S.receitas[it.receitaId];const q=num(it.qtd);venda+=q*num(it.preco);if(r)custo+=q*calc(r).unit;});
+  const taxa=num(S.config.taxaPct);
+  const total=Math.max(0,venda+num(o.taxaEntrega)-num(o.desconto));
+  return {venda,custo,total,lucro:total*(1-taxa/100)-custo};
+}
+// aplica diferença de consumo no estoque: positivo desconta, negativo devolve
+async function aplicarEstoque(delta){
+  for(const [iid,q] of Object.entries(delta)){
+    if(!q)continue;const i=S.insumos[iid];if(!i)continue;
+    await save('insumos',iid,{...clone(i),estoque:Math.round((num(i.estoque)-q)*1000)/1000});
+  }
+}
+function diff(novo,velho){const d={};new Set([...Object.keys(novo),...Object.keys(velho)]).forEach(k=>{const v=(novo[k]||0)-(velho[k]||0);if(Math.abs(v)>1e-9)d[k]=v;});return d;}
+function validadeEnc(o){
+  let min=Infinity;(o.itens||[]).forEach(it=>{const r=S.receitas[it.receitaId];const v=num(r&&r.validadeDias);if(v>0&&v<min)min=v;});
+  if(!isFinite(min)||!o.dataEntrega)return '';
+  const [y,m,d]=o.dataEntrega.split('-').map(Number);return dataBR(new Date(y,m-1,d+min));
+}
+function dataLonga(s){if(!s)return 'sem data';const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});}
+
+function renderEncomendas(){
+  const all=Object.entries(S.encomendas);
+  const mes=hoje().slice(0,7);
+  const doMes=all.filter(([,o])=>o.status!=='Cancelada'&&String(o.dataEntrega||'').slice(0,7)===mes);
+  const fat=doMes.reduce((s,[,o])=>s+resumoEnc(o).total,0), luc=doMes.reduce((s,[,o])=>s+resumoEnc(o).lucro,0);
+  const receber=all.filter(([,o])=>o.status!=='Cancelada'&&!o.pago).reduce((s,[,o])=>s+resumoEnc(o).total,0);
+  $('#encstats').innerHTML=`<div class="stat"><span class="label">Encomendas no mês</span><b>${doMes.length}</b></div>
+    <div class="stat"><span class="label">Faturamento do mês</span><b>${brl(fat)}</b></div>
+    <div class="stat"><span class="label">Lucro estimado</span><b style="color:var(--ok)">${brl(luc)}</b></div>
+    <div class="stat"><span class="label">A receber</span><b style="color:var(${receber?'--warn':'--fg'})">${brl(receber)}</b></div>`;
+  const el=$('#encomendas');
+  if((S.mode==='loading'||S.mode==='live')&&!S.loaded.encomendas){el.innerHTML='<div class="empty">Carregando encomendas…</div>';return;}
+  if(!all.length){el.innerHTML='<div class="empty">Nenhuma encomenda ainda. Toque em <b>+ Nova encomenda</b>, escolha as receitas e as quantidades, e o estoque é descontado na hora.</div>';return;}
+  const abertas=all.filter(([,o])=>o.status==='Confirmada').sort((a,b)=>String(a[1].dataEntrega).localeCompare(String(b[1].dataEntrega)));
+  const fechadas=all.filter(([,o])=>o.status!=='Confirmada').sort((a,b)=>String(b[1].dataEntrega).localeCompare(String(a[1].dataEntrega)));
+  const card=([id,o])=>{const r=resumoEnc(o);const val=o.status==='Cancelada'?'':validadeEnc(o);
+    return `<article class="card enc ${o.status==='Cancelada'?'off':''}">
+      <div class="head"><div style="min-width:0"><span class="label">${esc(dataLonga(o.dataEntrega))}${o.hora?' · '+esc(o.hora):''}</span><h3>${esc(o.cliente||'Sem nome')}</h3>${o.contato?`<p class="muted small">${esc(o.contato)}</p>`:''}</div>
+        <div class="chips" style="justify-content:flex-end"><span class="chip ${ST_CHIP[o.status]||''}">${esc(o.status)}</span>${o.status!=='Cancelada'?`<span class="chip ${o.pago?'ok':'warn'}">${o.pago?'Pago':'A receber'}</span>`:''}</div></div>
+      <ul class="ing">${(o.itens||[]).map(it=>{const rc=S.receitas[it.receitaId];return `<li><span>${fmt(num(it.qtd),0)}× ${esc(rc?rc.nome:it.nome||'Receita apagada')}</span><span class="muted">${brl(num(it.preco))}</span><span>${brl(num(it.qtd)*num(it.preco))}</span></li>`;}).join('')}</ul>
+      <div class="pricebox">
+        <div><span class="label">Total</span><strong>${brl(r.total)}</strong>${num(o.taxaEntrega)||num(o.desconto)?`<small class="muted">${num(o.taxaEntrega)?'entrega '+brl(num(o.taxaEntrega)):''}${num(o.taxaEntrega)&&num(o.desconto)?' · ':''}${num(o.desconto)?'desconto '+brl(num(o.desconto)):''}</small>`:''}</div>
+        <div><span class="label">Custo</span><b>${brl(r.custo)}</b></div>
+        <div><span class="label">Lucro</span><b style="color:var(--ok)">${brl(r.lucro)}</b></div>
+      </div>
+      ${val?`<p class="small muted">Consumir até ${val}</p>`:''}
+      ${o.obs?`<p class="prep muted">${esc(o.obs)}</p>`:''}
+      <div class="actions">
+        ${o.status==='Confirmada'?`<button class="btn primary" data-act="enc-entregue" data-id="${id}">Marcar entregue</button>`:''}
+        ${o.status!=='Cancelada'&&!o.pago?`<button class="btn" data-act="enc-pago" data-id="${id}">Recebi</button>`:''}
+        ${o.status!=='Cancelada'?`<button class="btn ghost" data-act="enc-editar" data-id="${id}">Editar</button>`:''}
+        ${o.status==='Confirmada'?`<button class="btn ghost danger" data-act="enc-cancelar" data-id="${id}" data-confirm title="Devolve os itens ao estoque">Cancelar</button>`:''}
+        ${o.status!=='Confirmada'?`<button class="btn ghost danger" data-act="enc-apagar" data-id="${id}" data-confirm>Apagar</button>`:''}
+      </div></article>`;};
+  el.innerHTML=(abertas.length?`<section class="group"><div class="ghead"><h3>Próximas entregas</h3><span class="muted small">${abertas.length}</span></div><div class="grid">${abertas.map(card).join('')}</div></section>`:'')+
+    (fechadas.length?`<section class="group"><div class="ghead"><h3>Entregues e canceladas</h3><span class="muted small">${fechadas.length}</span></div><div class="grid">${fechadas.map(card).join('')}</div></section>`:'');
+}
+function openEnc(id){
+  const base=id?clone(S.encomendas[id]):{cliente:'',contato:'',dataEntrega:hoje(),hora:'',itens:[{receitaId:'',qtd:'',preco:''}],taxaEntrega:'',desconto:'',pago:false,obs:'',status:'Confirmada',consumo:{}};
+  base.itens=base.itens||[];
+  ENC={id:id||null,data:base};renderEncEditor();
+  $('#enceditor').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+}
+function encRowsHTML(){
+  const rec=Object.entries(S.receitas).sort((a,b)=>String(a[1].nome).localeCompare(b[1].nome,'pt-BR'));
+  if(!rec.length)return '<p class="muted small">Cadastre receitas na aba Receitas para lançar encomendas.</p>';
+  return `<div class="row erow rowhead"><span>Receita</span><span>Unidades</span><span>Preço un (R$)</span><span style="text-align:right">Subtotal</span><span></span></div>`+
+  ENC.data.itens.map((it,k)=>`<div class="row erow" data-ek="${k}">
+    <select data-ef="receitaId" aria-label="Receita"><option value="">Escolha…</option>${rec.map(([rid,r])=>`<option value="${rid}" ${rid===it.receitaId?'selected':''}>${esc(r.nome)}</option>`).join('')}</select>
+    <input data-ef="qtd" inputmode="decimal" value="${vIn(it.qtd)}" aria-label="Unidades">
+    <input data-ef="preco" inputmode="decimal" value="${it.preco===''?'':fin(num(it.preco),2)}" aria-label="Preço por unidade">
+    <span class="c" data-sub>${brl(num(it.qtd)*num(it.preco))}</span>
+    <button class="btn ghost" data-act="enc-rm" aria-label="Remover linha">✕</button></div>`).join('')+
+  `<div><button class="btn ghost" data-act="enc-add">+ Adicionar receita</button></div>`;
+}
+function renderEncEditor(){
+  const el=$('#enceditor');if(!ENC){el.innerHTML='';return;}
+  const d=ENC.data;
+  el.innerHTML=`<div class="panel edit"><div class="bar"><h3>${ENC.id?'Editar encomenda':'Nova encomenda'}</h3></div>
+    <div class="edgrid"><div class="edmain">
+      <fieldset><legend>Cliente e entrega</legend><div class="fields">
+        <label class="field wide"><span>Cliente</span><input id="o-cli" data-eo="cliente" value="${esc(d.cliente)}" placeholder="Nome de quem encomendou"></label>
+        <label class="field"><span>Contato</span><input data-eo="contato" value="${esc(d.contato)}" placeholder="WhatsApp ou endereço"></label>
+        <label class="field"><span>Data da entrega</span><input type="date" data-eo="dataEntrega" value="${esc(d.dataEntrega)}"></label>
+        <label class="field"><span>Horário</span><input type="time" data-eo="hora" value="${esc(d.hora)}"></label>
+      </div></fieldset>
+      <fieldset><legend>Receitas da encomenda</legend><div class="rows" id="o-itens">${encRowsHTML()}</div>
+        <p class="muted small">O preço já vem com o que ela cobra hoje ou com o preço sugerido. Pode alterar.</p></fieldset>
+      <fieldset><legend>Valores</legend><div class="fields">
+        <label class="field"><span>Taxa de entrega (R$)</span><input data-eo="taxaEntrega" inputmode="decimal" value="${d.taxaEntrega===''?'':fin(num(d.taxaEntrega),2)}" placeholder="0,00"></label>
+        <label class="field"><span>Desconto (R$)</span><input data-eo="desconto" inputmode="decimal" value="${d.desconto===''?'':fin(num(d.desconto),2)}" placeholder="0,00"></label>
+        <div class="field"><span>Pagamento</span><div class="checks"><label><input type="checkbox" data-eo="pago" ${d.pago?'checked':''}> Já foi pago</label></div></div>
+        <label class="field full"><span>Observações</span><input data-eo="obs" value="${esc(d.obs)}" placeholder="Ex.: escrever Parabéns Ana no bolo"></label>
+      </div></fieldset>
+    </div>
+    <aside class="edside"><div class="calc" id="o-calc"></div>
+      <div class="actions"><button class="btn primary" data-act="enc-salvar">${ENC.id?'Salvar e ajustar estoque':'Lançar e descontar estoque'}</button><button class="btn" data-act="enc-fechar">Cancelar</button></div>
+    </aside></div></div>`;
+  updateEncCalc();
+}
+function updateEncCalc(){
+  const el=$('#o-calc');if(!el)return;const d=ENC.data;const r=resumoEnc(d);
+  document.querySelectorAll('#o-itens .row[data-ek]').forEach(row=>{const it=d.itens[+row.dataset.ek];if(it)row.querySelector('[data-sub]').textContent=brl(num(it.qtd)*num(it.preco));});
+  const novo=consumo(d.itens), velho=ENC.id?(d.consumo||{}):{};
+  const linhas=Object.entries(novo).map(([iid,q])=>{const i=S.insumos[iid];if(!i)return '';
+    const disp=num(i.estoque)+(velho[iid]||0);const falta=q-disp;
+    return `<li><span>${esc(i.nome)}</span><span class="muted">${fmtQtd(q,i.unidade)}</span><span style="color:var(${falta>1e-9?'--bad':'--muted'})">${falta>1e-9?'faltam '+fmtQtd(falta,i.unidade):'ok'}</span></li>`;}).join('');
+  const faltam=Object.entries(novo).filter(([iid,q])=>{const i=S.insumos[iid];return i&&q-(num(i.estoque)+(velho[iid]||0))>1e-9;}).length;
+  el.innerHTML=`<div class="label">Total da encomenda</div><strong class="big">${brl(r.total)}</strong>
+    <dl class="kv"><dt>Produtos</dt><dd>${brl(r.venda)}</dd>
+      ${num(d.taxaEntrega)?`<dt>Entrega</dt><dd>${brl(num(d.taxaEntrega))}</dd>`:''}
+      ${num(d.desconto)?`<dt>Desconto</dt><dd>− ${brl(num(d.desconto))}</dd>`:''}
+      <dt class="sum">Custo de produção</dt><dd class="sum">${brl(r.custo)}</dd>
+      <dt>Lucro estimado</dt><dd style="color:var(--ok)">${brl(r.lucro)}</dd></dl>
+    <div class="label" style="margin-top:8px">Vai sair do estoque</div>
+    ${linhas?`<ul class="ing">${linhas}</ul>`:'<p class="muted small">Escolha as receitas para ver o consumo.</p>'}
+    ${faltam?`<p class="small" style="color:var(--bad)">${faltam} item(ns) sem estoque suficiente. Dá para lançar mesmo assim; o estoque fica negativo até você registrar a compra.</p>`:''}`;
+}
+async function salvarEnc(){
+  const d=clone(ENC.data);
+  d.itens=d.itens.filter(it=>it.receitaId&&num(it.qtd)>0).map(it=>({receitaId:it.receitaId,nome:(S.receitas[it.receitaId]||{}).nome||'',qtd:num(it.qtd),preco:num(it.preco)}));
+  if(!String(d.cliente).trim()){toast('Informe o nome do cliente.');$('#o-cli').focus();return;}
+  if(!d.itens.length){toast('Adicione pelo menos uma receita com quantidade.');return;}
+  d.cliente=String(d.cliente).trim();d.taxaEntrega=num(d.taxaEntrega);d.desconto=num(d.desconto);d.pago=!!d.pago;
+  const velho=ENC.id?(S.encomendas[ENC.id].consumo||{}):{};
+  const novo=d.status==='Cancelada'?{}:consumo(d.itens);
+  d.consumo=novo;if(!d.criadoEm)d.criadoEm=new Date().toISOString();
+  const id=ENC.id||newId('encomendas');
+  const btn=document.querySelector('[data-act="enc-salvar"]');if(btn)btn.disabled=true;
+  const editando=!!ENC.id;
+  if(await save('encomendas',id,d)){await aplicarEstoque(diff(novo,velho));ENC=null;renderEncEditor();toast(editando?'Encomenda salva e estoque ajustado':'Encomenda lançada e estoque descontado');}
+  else if(btn)btn.disabled=false;
+}
+async function encStatus(id,patch,devolver){
+  const o=S.encomendas[id];if(!o)return;
+  const d={...clone(o),...patch};
+  if(devolver){d.consumo={};}
+  if(await save('encomendas',id,d)&&devolver)await aplicarEstoque(diff({},o.consumo||{}));
+}
+
+async function produzir(id){
+  const r=S.receitas[id];if(!r)return;
+  const uso={};
+  (r.itens||[]).forEach(it=>{uso[it.id]=(uso[it.id]||0)+num(it.qtd);});
+  (r.embalagens||[]).forEach(it=>{uso[it.id]=(uso[it.id]||0)+num(it.qtd)*num(r.rendimento);});
+  let faltou=[];
+  for(const [iid,q] of Object.entries(uso)){
+    const i=S.insumos[iid];if(!i)continue;
+    const novo=num(i.estoque)-q;if(novo<0)faltou.push(i.nome);
+    await save('insumos',iid,{...clone(i),estoque:Math.max(0,Math.round(novo*1000)/1000)});
+  }
+  const vd=num(r.validadeDias);const venc=vd?' Vence em '+dataBR(new Date(Date.now()+vd*864e5))+'.':'';
+  toast(faltou.length?'Estoque descontado. Faltava: '+faltou.join(', ')+'.'+venc:'1 lote de '+r.nome+' descontado do estoque.'+venc);
+}
+
+// ---------- Estoque ----------
+function renderInsumos(){
+  const all=Object.entries(S.insumos);
+  const low=all.filter(([,i])=>num(i.minimo)>0&&num(i.estoque)<num(i.minimo));
+  const valor=all.reduce((s,[,i])=>s+num(i.estoque)*custoUn(i),0);
+  $('#insstats').innerHTML=`<div class="stat"><span class="label">Itens</span><b>${all.length}</b></div>
+    <div class="stat"><span class="label">Abaixo do mínimo</span><b style="color:var(${low.length?'--warn':'--ok'})">${low.length}</b></div>
+    <div class="stat"><span class="label">Valor em estoque</span><b>${brl(valor)}</b></div>`;
+  const el=$('#insumos');
+  const list=all.filter(([,i])=>S.insFiltro==='todos'||i.tipo===S.insFiltro).sort((a,b)=>{
+    const la=num(a[1].minimo)>0&&num(a[1].estoque)<num(a[1].minimo), lb=num(b[1].minimo)>0&&num(b[1].estoque)<num(b[1].minimo);
+    return (lb-la)||String(a[1].nome).localeCompare(b[1].nome,'pt-BR');});
+  if((S.mode==='loading'||S.mode==='live')&&!S.loaded.insumos){el.innerHTML='<div class="empty">Carregando estoque…</div>';return;}
+  if(!list.length){el.innerHTML='<div class="empty">Nada por aqui. Toque em <b>+ Novo item</b> e cadastre o que você compra, com o tamanho da embalagem e o preço.</div>';return;}
+  el.innerHTML=list.map(([id,i])=>{
+    const est=num(i.estoque),min=num(i.minimo);const ratio=min>0?Math.min(1,est/(min*2)):1;
+    const cls=est<=0?'out':(min>0&&est<min?'low':'');
+    const chip=est<=0?'<span class="chip bad">acabou</span>':(min>0&&est<min?'<span class="chip warn">comprar</span>':'');
+    let h=`<div class="item">
+      <div style="min-width:0"><div class="name">${esc(i.nome)} ${i.exemplo?'<span class="chip ex">exemplo</span>':''}</div>
+        <div class="sub">${i.tipo==='embalagem'?'Embalagem':'Ingrediente'} · ${fmtQtd(i.qtdEmb,i.unidade)} por ${brl(num(i.precoEmb))}</div></div>
+      <div class="hide-sm"><div class="label">Custo</div><div>${custoRef(i)}</div></div>
+      <div class="hide-sm"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span>${fmtQtd(est,i.unidade)}</span>${chip}</div>
+        <div class="meter"><i class="${cls}" style="width:${Math.max(3,ratio*100)}%"></i></div>${min>0?`<div class="sub">mínimo ${fmtQtd(min,i.unidade)}</div>`:''}</div>
+      <div class="actions" style="justify-content:flex-end"><button class="btn" data-act="compra" data-id="${id}">Comprei</button><button class="btn ghost" data-act="editar-insumo" data-id="${id}">Editar</button></div>
+    </div>`;
+    if(COMPRA&&COMPRA.id===id)h+=compraHTML(id,i);
+    return h;}).join('');
+}
+function compraHTML(id,i){
+  return `<form class="panel edit" id="compra-form" style="margin:8px 0 12px">
+    <h3>Compra de ${esc(i.nome)}</h3>
+    <div class="fields">
+      <label class="field"><span>Quantas embalagens</span><input id="c-n" inputmode="decimal" value="1"></label>
+      <label class="field"><span>Preço de cada (R$)</span><input id="c-preco" inputmode="decimal" value="${fin(num(i.precoEmb),2)}"></label>
+      <label class="field"><span>Data</span><input type="date" id="c-data" value="${hoje()}"></label>
+    </div>
+    <p class="muted small">Soma ao estoque, atualiza o preço do item e lança o valor em Gastos.</p>
+    <div class="actions"><button class="btn primary" type="submit">Registrar compra</button><button class="btn" type="button" data-act="cancelar-compra">Cancelar</button></div>
+  </form>`;
+}
+function renderInsForm(){
+  const el=$('#insform');
+  if(!INSF){el.innerHTML='';return;}
+  const d=INSF.data;
+  el.innerHTML=`<form class="panel edit" id="ins-form">
+    <h3>${INSF.id?'Editar item':'Novo item do estoque'}</h3>
+    <div class="fields">
+      <label class="field" style="grid-column:span 2"><span>Nome</span><input id="i-nome" value="${esc(d.nome)}" placeholder="Ex.: Leite condensado Moça" required></label>
+      <label class="field"><span>Tipo</span><select id="i-tipo"><option value="ingrediente" ${d.tipo!=='embalagem'?'selected':''}>Ingrediente</option><option value="embalagem" ${d.tipo==='embalagem'?'selected':''}>Embalagem</option></select></label>
+      <label class="field"><span>Medida</span><select id="i-un">${['g','ml','un'].map(u=>`<option value="${u}" ${d.unidade===u?'selected':''}>${{g:'gramas (g)',ml:'mililitros (ml)',un:'unidades'}[u]}</option>`).join('')}</select></label>
+      <label class="field"><span>Quantidade na embalagem</span><input id="i-qtd" inputmode="decimal" value="${d.qtdEmb===''?'':fin(num(d.qtdEmb),3)}" placeholder="Ex.: 395"></label>
+      <label class="field"><span>Preço da embalagem (R$)</span><input id="i-preco" inputmode="decimal" value="${d.precoEmb===''?'':fin(num(d.precoEmb),2)}" placeholder="Ex.: 6,49"></label>
+      <label class="field"><span>Tenho em casa</span><input id="i-est" inputmode="decimal" value="${d.estoque===''?'':fin(num(d.estoque),3)}" placeholder="na mesma medida"></label>
+      <label class="field"><span>Avisar abaixo de</span><input id="i-min" inputmode="decimal" value="${d.minimo===''?'':fin(num(d.minimo),3)}" placeholder="opcional"></label>
+    </div>
+    <div class="actions"><button class="btn primary" type="submit">Salvar item</button><button class="btn" type="button" data-act="cancelar-insumo">Cancelar</button>
+    ${INSF.id?'<button class="btn danger" type="button" data-act="apagar-insumo" data-confirm style="margin-left:auto">Apagar item</button>':''}</div>
+  </form>`;
+  $('#i-nome').focus();
+}
+
+// ---------- Gastos ----------
+function renderGastos(){
+  const mes=$('#g-mes').value;
+  const list=Object.entries(S.gastos).filter(([,g])=>String(g.data||'').slice(0,7)===mes).sort((a,b)=>String(b[1].data).localeCompare(String(a[1].data)));
+  const tot=list.reduce((s,[,g])=>s+num(g.valor),0);
+  const [y,m]=mes.split('-');const nomeMes=new Date(+y,+m-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  $('#g-titulo').textContent='Resumo de '+nomeMes;
+  $('#g-total').textContent=brl(tot);
+  const porCat={};CATS.forEach(c=>porCat[c]=0);list.forEach(([,g])=>porCat[g.categoria]=(porCat[g.categoria]||0)+num(g.valor));
+  const max=Math.max(...Object.values(porCat),1);
+  $('#g-cats').innerHTML=Object.entries(porCat).map(([c,v])=>`<div class="catbar"><span>${esc(c)}</span><span class="track"><i style="width:${v/max*100}%"></i></span><span class="val">${brl(v)}</span></div>`).join('');
+  const el=$('#g-lista');
+  if((S.mode==='loading'||S.mode==='live')&&!S.loaded.gastos){el.innerHTML='<div class="empty">Carregando gastos…</div>';return;}
+  if(!list.length){el.innerHTML='<div class="empty">Nenhum gasto lançado neste mês.</div>';return;}
+  el.innerHTML=list.map(([id,g])=>{const [,mm,dd]=String(g.data).split('-');return `<div class="gasto">
+    <span class="muted">${dd}/${mm}</span>
+    <div style="min-width:0"><div style="overflow-wrap:anywhere">${esc(g.descricao||g.categoria)} ${g.exemplo?'<span class="chip ex">exemplo</span>':''}</div><div class="sub muted small">${esc(g.categoria)}</div></div>
+    <span class="v">${brl(num(g.valor))}</span>
+    <button class="btn ghost danger" data-act="apagar-gasto" data-id="${id}" data-confirm aria-label="Apagar lançamento">✕</button></div>`;}).join('');
+}
+function renderCfg(){
+  const c=S.config;
+  for(const [k,id] of [['valorHora','cfg-hora'],['gasPct','cfg-gas'],['margem','cfg-margem'],['taxaPct','cfg-taxa']]){
+    const el=document.getElementById(id);if(document.activeElement!==el)el.value=fin(num(c[k]),2);
+  }
+}
+
+// ---------- Eventos ----------
+function setTab(t){
+  S.tab=t;document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
+  document.querySelectorAll('.tab').forEach(s=>s.hidden=s.id!=='tab-'+t);
+  try{localStorage.setItem('choco-tab',t);}catch(e){}
+}
+document.querySelector('nav.tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-tab]');if(b)setTab(b.dataset.tab);});
+$('#insfiltro').addEventListener('click',e=>{const b=e.target.closest('button[data-f]');if(!b)return;S.insFiltro=b.dataset.f;
+  document.querySelectorAll('#insfiltro button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderInsumos();});
+
+function armed(btn){
+  if(btn.dataset.armed)return true;
+  const txt=btn.textContent;btn.dataset.armed='1';btn.classList.add('armed');btn.textContent='Confirmar?';
+  setTimeout(()=>{if(btn.isConnected){delete btn.dataset.armed;btn.classList.remove('armed');btn.textContent=txt;}},3500);
+  return false;
+}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const act=b.dataset.act,id=b.dataset.id;
+  if(b.hasAttribute('data-confirm')&&!armed(b))return;
+  if(act==='nova-receita')openEditor(null);
+  else if(act==='editar-receita')openEditor(id);
+  else if(act==='cancelar-receita'){E=null;renderEditor();}
+  else if(act==='salvar-receita')salvarReceita();
+  else if(act==='apagar-receita'){const rid=E.id;E=null;renderEditor();await remove('receitas',rid);toast('Receita apagada');}
+  else if(act==='add-row'){E.data[b.dataset.kind].push({id:'',qtd:''});$(b.dataset.kind==='itens'?'#e-itens':'#e-emb').innerHTML=rowsHTML(b.dataset.kind);updateEditorCalc();}
+  else if(act==='rm-row'){const row=b.closest('.row');const k=row.dataset.kind;E.data[k].splice(+row.dataset.k,1);$(k==='itens'?'#e-itens':'#e-emb').innerHTML=rowsHTML(k);updateEditorCalc();}
+  else if(act==='produzir')produzir(id);
+  else if(act==='novo-insumo'){INSF={id:null,data:{nome:'',tipo:'ingrediente',unidade:'g',qtdEmb:'',precoEmb:'',estoque:'',minimo:''}};renderInsForm();}
+  else if(act==='editar-insumo'){INSF={id,data:clone(S.insumos[id])};renderInsForm();$('#insform').scrollIntoView({block:'start'});}
+  else if(act==='cancelar-insumo'){INSF=null;renderInsForm();}
+  else if(act==='apagar-insumo'){const iid=INSF.id;INSF=null;renderInsForm();await remove('insumos',iid);toast('Item apagado');}
+  else if(act==='compra'){COMPRA={id};renderInsumos();$('#c-n').focus();}
+  else if(act==='cancelar-compra'){COMPRA=null;renderInsumos();}
+  else if(act==='apagar-gasto'){await remove('gastos',id);toast('Lançamento apagado');}
+  else if(act==='enc-nova')openEnc(null);
+  else if(act==='enc-editar')openEnc(id);
+  else if(act==='enc-fechar'){ENC=null;renderEncEditor();}
+  else if(act==='enc-salvar')salvarEnc();
+  else if(act==='enc-add'){ENC.data.itens.push({receitaId:'',qtd:'',preco:''});$('#o-itens').innerHTML=encRowsHTML();updateEncCalc();}
+  else if(act==='enc-rm'){ENC.data.itens.splice(+b.closest('.row').dataset.ek,1);$('#o-itens').innerHTML=encRowsHTML();updateEncCalc();}
+  else if(act==='enc-entregue'){await encStatus(id,{status:'Entregue'});toast('Encomenda entregue');}
+  else if(act==='enc-pago'){await encStatus(id,{pago:true});toast('Pagamento registrado');}
+  else if(act==='enc-cancelar'){await encStatus(id,{status:'Cancelada'},true);toast('Encomenda cancelada e itens devolvidos ao estoque');}
+  else if(act==='enc-apagar'){await remove('encomendas',id);toast('Encomenda apagada');}
+  else if(act==='exportar'){
+    const dados={app:'controlechoco',versao:1,exportadoEm:new Date().toISOString(),config:S.config};COLS.forEach(c=>dados[c]=S[c]);
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(dados,null,2)],{type:'application/json'}));
+    a.download='choco-backup-'+hoje()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  }
+  else if(act==='apagar-exemplos'){
+    for(const c of ['receitas','insumos','gastos'])for(const [did,d] of Object.entries(S[c]))if(d.exemplo)await remove(c,did);
+    toast('Exemplos apagados');
+  }
+});
+// Editor: campos e linhas
+$('#editor').addEventListener('input',e=>{
+  if(!E)return;const t=e.target;
+  if(t.dataset.alerg!==undefined){const a=t.dataset.alerg,l=E.data.alergenos;if(t.checked&&!l.includes(a))l.push(a);if(!t.checked)E.data.alergenos=l.filter(x=>x!==a);return;}
+  if(t.dataset.e){E.data[t.dataset.e]=t.value;updateEditorCalc();return;}
+  const row=t.closest('.row[data-kind]');if(!row)return;
+  const it=E.data[row.dataset.kind][+row.dataset.k];
+  if(t.dataset.f==='qtd')it.qtd=num(t.value);
+  updateEditorCalc();
+});
+$('#editor').addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.alerg!==undefined){const a=t.dataset.alerg;E.data.alergenos=E.data.alergenos.filter(x=>x!==a);if(t.checked)E.data.alergenos.push(a);return;}
+  if(t.tagName==='SELECT'&&t.dataset.e){E.data[t.dataset.e]=t.value;return;}
+  const row=t.closest('.row[data-kind]');if(!row||t.dataset.f!=='id')return;
+  E.data[row.dataset.kind][+row.dataset.k].id=t.value;updateEditorCalc();
+});
+// Formulário de insumo
+document.addEventListener('submit',async e=>{
+  if(e.target.id==='ins-form'){
+    e.preventDefault();
+    const d={...(INSF.id?clone(S.insumos[INSF.id]):{}),nome:$('#i-nome').value.trim(),tipo:$('#i-tipo').value,unidade:$('#i-un').value,
+      qtdEmb:num($('#i-qtd').value),precoEmb:num($('#i-preco').value),estoque:num($('#i-est').value),minimo:num($('#i-min').value)};
+    if(!d.nome){toast('Dê um nome para o item.');return;}
+    if(d.qtdEmb<=0){toast('Informe quanto vem na embalagem.');$('#i-qtd').focus();return;}
+    const iid=INSF.id||newId('insumos');
+    if(await save('insumos',iid,d)){INSF=null;renderInsForm();toast('Item salvo');}
+  }
+  else if(e.target.id==='compra-form'){
+    e.preventDefault();
+    const i=S.insumos[COMPRA.id];if(!i)return;
+    const n=num($('#c-n').value),p=num($('#c-preco').value),data=$('#c-data').value||hoje();
+    if(n<=0){toast('Informe quantas embalagens comprou.');return;}
+    const iid=COMPRA.id;COMPRA=null;
+    const ok=await save('insumos',iid,{...clone(i),estoque:num(i.estoque)+n*num(i.qtdEmb),precoEmb:p||num(i.precoEmb)});
+    if(ok&&p>0)await save('gastos',newId('gastos'),{data,categoria:i.tipo==='embalagem'?'Embalagem':'Ingredientes e estoque',descricao:`Compra: ${i.nome} (${fmt(n,2)}×)`,valor:Math.round(n*p*100)/100});
+    renderInsumos();toast('Compra registrada');
+  }
+  else if(e.target.id==='g-form'){
+    e.preventDefault();
+    const v=num($('#g-valor').value);if(v<=0){toast('Informe o valor.');$('#g-valor').focus();return;}
+    const g={data:$('#g-data').value||hoje(),categoria:$('#g-cat').value,descricao:$('#g-desc').value.trim(),valor:Math.round(v*100)/100};
+    if(await save('gastos',newId('gastos'),g)){$('#g-desc').value='';$('#g-valor').value='';$('#g-mes').value=g.data.slice(0,7);renderGastos();toast('Gasto lançado');}
+  }
+  else if(e.target.id==='cfg-form'){
+    e.preventDefault();
+    const c={valorHora:num($('#cfg-hora').value),gasPct:num($('#cfg-gas').value),margem:num($('#cfg-margem').value),taxaPct:num($('#cfg-taxa').value)};
+    if(c.margem+c.taxaPct>=100){toast('Margem + taxa precisam ficar abaixo de 100%.');return;}
+    await saveConfig(c);toast('Ajustes salvos');
+  }
+});
+$('#g-mes').addEventListener('change',renderGastos);
+$('#importar').addEventListener('change',async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  let d;try{d=JSON.parse(await f.text());}catch(err){toast('Arquivo inválido.');return;}
+  if(!d||typeof d!=='object'||!COLS.some(c=>d[c]&&typeof d[c]==='object')){toast('Esse arquivo não parece um backup da Choco.');return;}
+  if(!confirm('Restaurar o backup substitui todos os dados atuais deste aparelho. Continuar?'))return;
+  if(db){for(const c of COLS)for(const [id,v] of Object.entries(d[c]||{}))await save(c,id,v);if(d.config)await saveConfig({...DEF,...d.config});}
+  else{COLS.forEach(c=>S[c]=d[c]&&typeof d[c]==='object'?d[c]:{});S.config={...DEF,...(d.config||{})};if(S.mode==='demo')S.mode='local';persist();renderAll();}
+  toast('Backup restaurado');
+});
+function encInput(e){
+  if(!ENC)return;const t=e.target;
+  if(t.dataset.eo){ENC.data[t.dataset.eo]=t.type==='checkbox'?t.checked:t.value;updateEncCalc();return;}
+  const row=t.closest('.row[data-ek]');if(!row||!t.dataset.ef)return;
+  const it=ENC.data.itens[+row.dataset.ek];
+  if(t.dataset.ef==='receitaId'){if(it.receitaId===t.value)return;it.receitaId=t.value;const r=S.receitas[t.value];
+    if(r){it.preco=Math.round(precoPadrao(r)*100)/100;row.querySelector('[data-ef="preco"]').value=fin(it.preco,2);if(it.qtd==='')it.qtd='';}}
+  else it[t.dataset.ef]=num(t.value);
+  updateEncCalc();
+}
+$('#enceditor').addEventListener('input',encInput);
+$('#enceditor').addEventListener('change',encInput);
+$('#rec-cats').addEventListener('click',e=>{const b=e.target.closest('button[data-rc]');if(!b)return;S.recCat=b.dataset.rc;renderReceitas();});
+$('#rec-busca').addEventListener('input',e=>{S.recBusca=e.target.value;renderReceitas();});
+
+// ---------- Início ----------
+$('#g-cat').innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');
+$('#g-data').value=hoje();$('#g-mes').value=hoje().slice(0,7);
+try{const t=localStorage.getItem('choco-tab');if(t&&document.getElementById('tab-'+t))setTab(t);}catch(e){}
+renderAll();
+
+(async()=>{
+  try{db=window.claude&&window.claude.use?await window.claude.use('db'):null;}catch(e){db=null;}
+  if(!db){
+    let salvo=null,ok=true;
+    try{salvo=JSON.parse(localStorage.getItem(LS_KEY)||'null');localStorage.setItem(LS_KEY+'-teste','1');localStorage.removeItem(LS_KEY+'-teste');}catch(e){ok=false;}
+    if(salvo&&typeof salvo==='object'){COLS.forEach(c=>S[c]=salvo[c]||{});S.config={...DEF,...(salvo.config||{})};}
+    else{for(const c of ['insumos','receitas','gastos'])S[c]=clone(DEMO[c]);}
+    S.mode=ok?'local':'demo';if(ok&&!salvo)persist();renderAll();return;
+  }
+  S.mode='live';renderAll();
+  for(const c of ['insumos','gastos','receitas','encomendas']){
+    db.collection(c).onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{if(d.exists)o[d.id]=d.data();});S[c]=o;S.loaded[c]=true;renderAll();},
+      ()=>toast('Não consegui carregar '+c+'. Recarregue a página.'));
+  }
+  db.doc('config/geral').onSnapshot(d=>{S.config={...DEF,...(d.exists?d.data():{})};renderAll();},()=>{});
+})();
+</script>
+
+</body></html>
