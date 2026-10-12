@@ -852,24 +852,43 @@ function renderInsForm(){
 }
 
 // ---------- Gastos ----------
+// Gasto no crédito parcelado vira uma parcela por mês, a partir do mês da compra.
+// A última parcela leva os centavos que sobram do arredondamento.
+function parcelasDoMes(mes){
+  const out=[];
+  Object.entries(S.gastos).forEach(([id,g])=>{
+    const [y,m,d]=String(g.data||'').split('-').map(Number);if(!y||!m)return;
+    const n=g.pagamento==='Crédito'?Math.max(1,Math.round(num(g.parcelas))||1):1;
+    const total=Math.round(num(g.valor)*100), base=Math.floor(total/n);
+    for(let k=0;k<n;k++){
+      const dt=new Date(y,m-1+k,1);const ym=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
+      if(ym!==mes)continue;
+      const dia=Math.min(d||1,new Date(dt.getFullYear(),dt.getMonth()+1,0).getDate());
+      out.push({id,g,k,n,data:ym+'-'+String(dia).padStart(2,'0'),valor:(k===n-1?total-base*(n-1):base)/100});
+    }
+  });
+  return out.sort((a,b)=>b.data.localeCompare(a.data));
+}
 function renderGastos(){
   const mes=$('#g-mes').value;
-  const list=Object.entries(S.gastos).filter(([,g])=>String(g.data||'').slice(0,7)===mes).sort((a,b)=>String(b[1].data).localeCompare(String(a[1].data)));
-  const tot=list.reduce((s,[,g])=>s+num(g.valor),0);
+  const list=parcelasDoMes(mes);
+  const tot=list.reduce((s,x)=>s+x.valor,0);
   const [y,m]=mes.split('-');const nomeMes=new Date(+y,+m-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
   $('#g-titulo').textContent='Resumo de '+nomeMes;
   $('#g-total').textContent=brl(tot);
-  const porCat={};CATS.forEach(c=>porCat[c]=0);list.forEach(([,g])=>{const c=catGasto(g);porCat[c]=(porCat[c]||0)+num(g.valor);});
+  const porCat={};CATS.forEach(c=>porCat[c]=0);list.forEach(x=>{const c=catGasto(x.g);porCat[c]=(porCat[c]||0)+x.valor;});
   const max=Math.max(...Object.values(porCat),1);
   $('#g-cats').innerHTML=Object.entries(porCat).map(([c,v])=>`<div class="catbar"><span>${esc(c)}</span><span class="track"><i style="width:${v/max*100}%"></i></span><span class="val">${brl(v)}</span></div>`).join('');
   const el=$('#g-lista');
   if((S.mode==='loading'||S.mode==='live')&&!S.loaded.gastos){el.innerHTML='<div class="empty">Carregando gastos…</div>';return;}
   if(!list.length){el.innerHTML='<div class="empty">Nenhum gasto lançado neste mês.</div>';return;}
-  el.innerHTML=list.map(([id,g])=>{const [,mm,dd]=String(g.data).split('-');return `<div class="gasto">
+  el.innerHTML=list.map(({id,g,k,n,data,valor})=>{const [,mm,dd]=data.split('-');
+    const pag=n>1?`Crédito · parcela ${k+1} de ${n} (total ${brl(num(g.valor))})`:pagTxt(g);
+    return `<div class="gasto">
     <span class="muted">${dd}/${mm}</span>
-    <div style="min-width:0"><div style="overflow-wrap:anywhere">${esc(g.descricao||g.categoria)} ${g.exemplo?'<span class="chip ex">exemplo</span>':''}</div><div class="sub muted small">${esc(catGasto(g))}${g.pagamento?' · '+esc(pagTxt(g)):''}</div></div>
-    <span class="v">${brl(num(g.valor))}</span>
-    <button class="btn ghost danger" data-act="apagar-gasto" data-id="${id}" data-confirm aria-label="Apagar lançamento">✕</button></div>`;}).join('');
+    <div style="min-width:0"><div style="overflow-wrap:anywhere">${esc(g.descricao||g.categoria)} ${g.exemplo?'<span class="chip ex">exemplo</span>':''}</div><div class="sub muted small">${esc(catGasto(g))}${pag?' · '+esc(pag):''}</div></div>
+    <span class="v">${brl(valor)}</span>
+    <button class="btn ghost danger" data-act="apagar-gasto" data-id="${id}" data-confirm aria-label="${n>1?'Apagar a compra e todas as parcelas':'Apagar lançamento'}" title="${n>1?'Apaga a compra e todas as parcelas':''}">✕</button></div>`;}).join('');
 }
 function renderCfg(){
   const c=S.config;
