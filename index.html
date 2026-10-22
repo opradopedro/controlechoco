@@ -309,7 +309,7 @@ textarea:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
       <h3>Como o preço é calculado</h3>
       <p><code>Ingredientes</code> soma a quantidade usada de cada item vezes o preço por grama, ml ou unidade da embalagem que você compra.</p>
       <p><code>Gás, luz e água</code> entram como uma porcentagem dos ingredientes. <code>Mão de obra</code> é o tempo da receita vezes o seu valor por hora.</p>
-      <p>Tudo isso dividido pelo rendimento dá o custo de uma unidade. Somando a <code>embalagem</code> de cada unidade, chega no custo final.</p>
+      <p>A <code>embalagem</code> usada na receita inteira entra no custo do lote. Tudo isso dividido pelo rendimento dá o custo de uma unidade.</p>
       <p><code>Preço sugerido = custo ÷ (1 − margem − taxa)</code>. Assim a margem é calculada sobre o preço de venda, e não sobre o custo. O valor é arredondado para cima em R$ 0,50.</p>
     </div>
   </section>
@@ -358,10 +358,10 @@ const DEMO={
  receitas:{
   'ex-brigadeiro':{nome:'Brigadeiro tradicional',categoria:'Docinhos',descricao:'Brigadeiro de enrolar com granulado',pesoUn:15,validadeDias:5,armazenamento:'Temperatura ambiente',tempoForno:120,preparo:'Cozinhar leite condensado, chocolate e manteiga em fogo baixo até desgrudar da panela. Esfriar, enrolar 15 g e passar no granulado.',obs:'',alergenos:['Lactose','Soja'],rendimento:30,minutos:60,margem:'',precoAtual:2.5,exemplo:true,
    itens:[{id:'ex-leitecond',qtd:395},{id:'ex-chocpo',qtd:30},{id:'ex-manteiga',qtd:15},{id:'ex-granulado',qtd:120}],
-   embalagens:[{id:'ex-forminha',qtd:1}]},
-  'ex-bolopote':{nome:'Bolo de pote de chocolate',categoria:'Bolos no pote',descricao:'Massa de chocolate com recheio de brigadeiro cremoso',pesoUn:220,validadeDias:4,armazenamento:'Geladeira',tempoForno:40,preparo:'Assar a massa a 180 °C por 35 a 40 min. Fazer o recheio com leite condensado, creme de leite e chocolate. Montar em camadas no pote.',obs:'Manter refrigerado',alergenos:['Glúten','Lactose','Ovo'],rendimento:10,minutos:90,margem:'',precoAtual:12,exemplo:true,
+   embalagens:[{id:'ex-forminha',qtd:30}],embPorLote:true},
+  'ex-bolopote':{nome:'Bolo de pote de chocolate',categoria:'Bolo',descricao:'Massa de chocolate com recheio de brigadeiro cremoso',pesoUn:220,validadeDias:4,armazenamento:'Geladeira',tempoForno:40,preparo:'Assar a massa a 180 °C por 35 a 40 min. Fazer o recheio com leite condensado, creme de leite e chocolate. Montar em camadas no pote.',obs:'Manter refrigerado',alergenos:['Glúten','Lactose','Ovo'],rendimento:10,minutos:90,margem:'',precoAtual:12,exemplo:true,
    itens:[{id:'ex-farinha',qtd:240},{id:'ex-acucar',qtd:200},{id:'ex-ovos',qtd:3},{id:'ex-chocpo',qtd:80},{id:'ex-manteiga',qtd:50},{id:'ex-leitecond',qtd:395},{id:'ex-creme',qtd:200}],
-   embalagens:[{id:'ex-pote',qtd:1}]}
+   embalagens:[{id:'ex-pote',qtd:10}],embPorLote:true}
  },
  gastos:{
   'ex-g1':{data:'2026-10-03',categoria:'Estoque',descricao:'Compra no atacadão',valor:86.4,pagamento:'Crédito',parcelas:2,exemplo:true},
@@ -399,12 +399,14 @@ function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTi
 // ---------- Cálculos ----------
 function custoUn(i){return i&&num(i.qtdEmb)>0?num(i.precoEmb)/num(i.qtdEmb):0;}
 function custoRef(i){const c=custoUn(i);if(i.unidade==='g')return brl(c*1000)+'/kg';if(i.unidade==='ml')return brl(c*1000)+'/L';return brl(c)+'/un';}
+// Embalagens: receitas novas guardam a quantidade da receita inteira (embPorLote); as antigas, por unidade
+function embLote(r){const rend=Math.max(1,num(r.rendimento)||1);return (r.embalagens||[]).map(it=>({id:it.id,qtd:r.embPorLote?num(it.qtd):num(it.qtd)*rend}));}
 function calc(r){
   const cfg=S.config;let ingr=0,emb=0,faltando=0;
   (r.itens||[]).forEach(it=>{const i=S.insumos[it.id];if(!i){if(it.id)faltando++;return;}ingr+=num(it.qtd)*custoUn(i);});
-  (r.embalagens||[]).forEach(it=>{const i=S.insumos[it.id];if(!i){if(it.id)faltando++;return;}emb+=num(it.qtd)*custoUn(i);});
+  embLote(r).forEach(it=>{const i=S.insumos[it.id];if(!i){if(it.id)faltando++;return;}emb+=it.qtd*custoUn(i);});
   const gas=ingr*num(cfg.gasPct)/100, mo=num(r.minutos)/60*num(cfg.valorHora);
-  const rend=Math.max(1,num(r.rendimento)||1), lote=ingr+gas+mo, unit=lote/rend+emb;
+  const rend=Math.max(1,num(r.rendimento)||1), lote=ingr+gas+mo+emb, unit=lote/rend;
   const margem=(r.margem!==''&&r.margem!=null)?num(r.margem):num(cfg.margem), taxa=num(cfg.taxaPct);
   const den=1-(margem+taxa)/100, preco=den>0?unit/den:NaN, precoR=isFinite(preco)?Math.ceil(preco*2-1e-9)/2:NaN;
   const lucro=precoR*(1-taxa/100)-unit, pa=num(r.precoAtual);
@@ -437,7 +439,9 @@ function margemChip(c){
   const txt=c.margemAtual<0?'prejuízo':'margem '+pct(c.margemAtual);
   return `<span class="chip ${cls}">Hoje ${brl(c.pa)} · ${txt}</span>`;
 }
-const CATS_REC=['Docinhos','Bolos','Bolos no pote','Tortas','Sobremesas','Salgados','Outros'];
+const CATS_REC=['Bolo','Brownie','Docinhos','Doces finos','Trufas','Tortas','Sobremesas','Cookies','Outros'];
+const CAT_REC_ANTIGA={'Bolos':'Bolo','Bolos no pote':'Bolo','Salgados':'Outros'};
+const catRec=r=>{const c=CAT_REC_ANTIGA[r.categoria]||r.categoria;return CATS_REC.includes(c)?c:'Outros';};
 const ALERG=['Glúten','Lactose','Ovo','Amendoim','Castanhas','Soja'];
 const ARM=['Temperatura ambiente','Geladeira','Freezer'];
 function dataBR(d){return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});}
@@ -452,9 +456,9 @@ function specs(r,c){
 }
 function fichaHTML(r){
   const li=(arr,mult)=>(arr||[]).map(it=>{const i=S.insumos[it.id];if(!i)return '';const q=num(it.qtd);
-    return `<li><span>${esc(i.nome)}</span><span class="muted">${fmtQtd(q,i.unidade)}${mult?' por un':''}</span><span>${brl(q*custoUn(i))}</span></li>`;}).join('');
+    return `<li><span>${esc(i.nome)}</span><span class="muted">${fmtQtd(q,i.unidade)}</span><span>${brl(q*custoUn(i))}</span></li>`;}).join('');
   return `<ul class="ing">${li(r.itens)||'<li class="muted">Sem ingredientes</li>'}</ul>
-    ${(r.embalagens||[]).length?`<div class="label" style="margin-top:10px">Embalagem</div><ul class="ing">${li(r.embalagens,true)}</ul>`:''}
+    ${(r.embalagens||[]).length?`<div class="label" style="margin-top:10px">Embalagem</div><ul class="ing">${li(embLote(r))}</ul>`:''}
     ${r.preparo?`<div class="label" style="margin-top:10px">Modo de preparo</div><p class="prep">${esc(r.preparo)}</p>`:''}
     ${r.obs?`<div class="label" style="margin-top:10px">Observações</div><p class="prep">${esc(r.obs)}</p>`:''}`;
 }
@@ -478,10 +482,9 @@ function cardHTML(id,r){
         <dt>Ingredientes do lote</dt><dd>${brl(c.ingr)}</dd>
         <dt>Gás, luz e água</dt><dd>${brl(c.gas)}</dd>
         <dt>Mão de obra</dt><dd>${brl(c.mo)}</dd>
+        <dt>Embalagem da receita</dt><dd>${brl(c.emb)}</dd>
         <dt class="sum">Custo do lote</dt><dd class="sum">${brl(c.lote)}</dd>
-        <dt>Lote ÷ ${fmt(c.rend,0)} un</dt><dd>${brl(c.lote/c.rend)}</dd>
-        <dt>Embalagem por un</dt><dd>${brl(c.emb)}</dd>
-        <dt class="sum">Custo por unidade</dt><dd class="sum">${brl(c.unit)}</dd>
+        <dt class="sum">Custo por unidade (÷ ${fmt(c.rend,0)})</dt><dd class="sum">${brl(c.unit)}</dd>
         <dt>Margem${c.taxa?' + taxa':''}</dt><dd>${pct(c.margem)}${c.taxa?' + '+pct(c.taxa):''}</dd>
       </dl></details>
     <details><summary>Ficha técnica</summary>${fichaHTML(r)}</details>
@@ -494,17 +497,17 @@ function cardHTML(id,r){
 function renderReceitas(){
   const el=$('#receitas'), filt=$('#rec-cats');
   const all=Object.entries(S.receitas);
-  const cats=[...new Set(all.map(([,r])=>r.categoria||'Outros'))].sort((a,b)=>CATS_REC.indexOf(a)-CATS_REC.indexOf(b));
+  const cats=[...new Set(all.map(([,r])=>catRec(r)))].sort((a,b)=>CATS_REC.indexOf(a)-CATS_REC.indexOf(b));
   if(S.recCat!=='todas'&&!cats.includes(S.recCat))S.recCat='todas';
   filt.innerHTML=cats.length>1?['todas',...cats].map(c=>`<button data-rc="${esc(c)}" aria-pressed="${S.recCat===c}">${c==='todas'?'Todas':esc(c)}</button>`).join(''):'';
   filt.hidden=cats.length<=1;
   if((S.mode==='loading'||S.mode==='live')&&!S.loaded.receitas){el.innerHTML='<div class="empty">Carregando receitas…</div>';return;}
   if(!all.length){el.innerHTML='<div class="empty">Nenhuma receita ainda. Cadastre os itens no Estoque e depois toque em <b>+ Nova receita</b>.</div>';return;}
   const q=S.recBusca.trim().toLowerCase();
-  const list=all.filter(([,r])=>(S.recCat==='todas'||(r.categoria||'Outros')===S.recCat)&&(!q||String(r.nome).toLowerCase().includes(q)))
+  const list=all.filter(([,r])=>(S.recCat==='todas'||catRec(r)===S.recCat)&&(!q||String(r.nome).toLowerCase().includes(q)))
     .sort((a,b)=>String(a[1].nome).localeCompare(b[1].nome,'pt-BR'));
   if(!list.length){el.innerHTML='<div class="empty">Nenhuma receita encontrada com esse filtro.</div>';return;}
-  const groups={};list.forEach(([id,r])=>{(groups[r.categoria||'Outros']=groups[r.categoria||'Outros']||[]).push([id,r]);});
+  const groups={};list.forEach(([id,r])=>{const g=catRec(r);(groups[g]=groups[g]||[]).push([id,r]);});
   el.innerHTML=Object.keys(groups).sort((a,b)=>CATS_REC.indexOf(a)-CATS_REC.indexOf(b)).map(g=>
     `<section class="group"><div class="ghead"><h3>${esc(g)}</h3><span class="muted small">${groups[g].length} ${groups[g].length==1?'receita':'receitas'}</span></div>
      <div class="grid">${groups[g].map(([id,r])=>cardHTML(id,r)).join('')}</div></section>`).join('');
@@ -519,7 +522,7 @@ function rowsHTML(kind){
   const list=E.data[kind];
   const tipo=kind==='itens'?'ingrediente':'embalagem';
   if(!Object.values(S.insumos).some(i=>i.tipo===tipo))return `<p class="muted small">Cadastre ${tipo==='ingrediente'?'ingredientes':'embalagens'} na aba Estoque para usar aqui.</p>`;
-  return `<div class="row rowhead"><span>Item</span><span>${kind==='itens'?'Qtd no lote':'Qtd por unidade'}</span><span></span><span style="text-align:right">Custo</span><span></span></div>`+
+  return `<div class="row rowhead"><span>Item</span><span>${kind==='itens'?'Qtd no lote':'Qtd na receita'}</span><span></span><span style="text-align:right">Custo</span><span></span></div>`+
   list.map((it,k)=>{const i=S.insumos[it.id];return `<div class="row" data-kind="${kind}" data-k="${k}">
     <select data-f="id" aria-label="Item">${opts(tipo,it.id)}</select>
     <input data-f="qtd" inputmode="decimal" value="${esc(it.qtd===''?'':fin(num(it.qtd),3))}" aria-label="Quantidade">
@@ -530,7 +533,7 @@ function rowsHTML(kind){
 }
 function openEditor(id){
   const base=id?clone(S.receitas[id]):{nome:'',categoria:'Docinhos',descricao:'',rendimento:'',pesoUn:'',validadeDias:'',armazenamento:'Temperatura ambiente',minutos:'',tempoForno:'',margem:'',precoAtual:'',preparo:'',obs:'',alergenos:[],itens:[{id:'',qtd:''}],embalagens:[{id:'',qtd:''}]};
-  base.itens=base.itens||[];base.embalagens=base.embalagens||[];base.alergenos=base.alergenos||[];
+  base.itens=base.itens||[];base.embalagens=id?embLote(base).map(x=>({id:x.id,qtd:Math.round(x.qtd*1000)/1000})):(base.embalagens||[]);base.embPorLote=true;base.alergenos=base.alergenos||[];base.categoria=catRec(base);
   E={id:id||null,data:base};renderEditor();
   $('#editor').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
 }
@@ -558,7 +561,7 @@ function renderEditor(){
           <label class="field"><span>Forno ou geladeira (min)</span><input id="e-forno" data-e="tempoForno" inputmode="decimal" value="${vIn(d.tempoForno)}" placeholder="opcional"></label>
         </div><p class="muted small" id="e-pesolote"></p></fieldset>
         <fieldset><legend>Ingredientes do lote</legend><div class="rows" id="e-itens">${rowsHTML('itens')}</div></fieldset>
-        <fieldset><legend>Embalagem de cada unidade</legend><div class="rows" id="e-emb">${rowsHTML('embalagens')}</div></fieldset>
+        <fieldset><legend>Embalagem da receita</legend><p class="muted small">Quantidade usada na receita inteira. Ex.: rende 30 doces, use 30 forminhas e 1 caixa.</p><div class="rows" id="e-emb">${rowsHTML('embalagens')}</div></fieldset>
         <fieldset><legend>Preparo e alergênicos</legend>
           <label class="field"><span>Modo de preparo</span><textarea id="e-prep" data-e="preparo" rows="4" placeholder="Passo a passo, ponto da massa, temperatura do forno…">${esc(d.preparo)}</textarea></label>
           <div class="field"><span>Contém</span><div class="checks">${ALERG.map(a=>`<label><input type="checkbox" data-alerg="${esc(a)}" ${d.alergenos.includes(a)?'checked':''}> ${esc(a)}</label>`).join('')}</div></div>
@@ -597,10 +600,9 @@ function updateEditorCalc(){
       <dt>Ingredientes do lote</dt><dd>${brl(c.ingr)}</dd>
       <dt>Gás, luz e água (${pct(num(S.config.gasPct))})</dt><dd>${brl(c.gas)}</dd>
       <dt>Mão de obra (${brl(num(S.config.valorHora))}/h)</dt><dd>${brl(c.mo)}</dd>
+      <dt>Embalagem da receita</dt><dd>${brl(c.emb)}</dd>
       <dt class="sum">Custo do lote</dt><dd class="sum">${brl(c.lote)}</dd>
-      <dt>Lote ÷ ${fmt(c.rend,0)} un</dt><dd>${brl(c.lote/c.rend)}</dd>
-      <dt>Embalagem por un</dt><dd>${brl(c.emb)}</dd>
-      <dt class="sum">Custo por unidade</dt><dd class="sum">${brl(c.unit)}</dd>
+      <dt class="sum">Custo por unidade (÷ ${fmt(c.rend,0)})</dt><dd class="sum">${brl(c.unit)}</dd>
       <dt>Lucro por unidade</dt><dd style="color:var(--ok)">${isFinite(c.lucro)?brl(c.lucro):'—'}</dd>
       ${c.margemAtual!=null?`<dt>Margem no preço de hoje</dt><dd style="color:var(${c.margemAtual<0?'--bad':c.margemAtual<c.margem-0.5?'--warn':'--ok'})">${pct(c.margemAtual)}</dd>`:''}
     </dl>`;
@@ -614,7 +616,7 @@ async function salvarReceita(){
   d.rendimento=num(d.rendimento);d.minutos=num(d.minutos);
   d.pesoUn=opt(d.pesoUn);d.validadeDias=opt(d.validadeDias);d.tempoForno=opt(d.tempoForno);d.margem=opt(d.margem);d.precoAtual=opt(d.precoAtual);
   d.itens=d.itens.filter(i=>i.id).map(i=>({id:i.id,qtd:num(i.qtd)}));
-  d.embalagens=d.embalagens.filter(i=>i.id).map(i=>({id:i.id,qtd:num(i.qtd)}));
+  d.embalagens=d.embalagens.filter(i=>i.id).map(i=>({id:i.id,qtd:num(i.qtd)}));d.embPorLote=true;
   const id=E.id||newId('receitas');
   if(await save('receitas',id,d)){E=null;renderEditor();renderReceitas();toast('Receita salva');}
 }
@@ -627,17 +629,20 @@ function consumo(itens){
   (itens||[]).forEach(it=>{const r=S.receitas[it.receitaId];const q=num(it.qtd);if(!r||q<=0)return;
     const f=q/Math.max(1,num(r.rendimento)||1);
     (r.itens||[]).forEach(x=>{if(x.id)u[x.id]=(u[x.id]||0)+num(x.qtd)*f;});
-    (r.embalagens||[]).forEach(x=>{if(x.id)u[x.id]=(u[x.id]||0)+num(x.qtd)*q;});
+    embLote(r).forEach(x=>{if(x.id)u[x.id]=(u[x.id]||0)+x.qtd*f;});
   });
   for(const k in u)u[k]=Math.round(u[k]*1000)/1000;
   return u;
 }
 function resumoEnc(o){
-  let venda=0,custo=0;
-  (o.itens||[]).forEach(it=>{const r=S.receitas[it.receitaId];const q=num(it.qtd);venda+=q*num(it.preco);if(r)custo+=q*calc(r).unit;});
-  const taxa=num(S.config.taxaPct);
-  const total=Math.max(0,venda+num(o.taxaEntrega)-num(o.desconto));
-  return {venda,custo,total,lucro:total*(1-taxa/100)-custo};
+  let venda=0,custo=0,sug=0;
+  (o.itens||[]).forEach(it=>{const r=S.receitas[it.receitaId];const q=num(it.qtd);venda+=q*num(it.preco);
+    if(r){const c=calc(r);custo+=q*c.unit;sug+=q*(isFinite(c.precoR)?c.precoR:0);}});
+  const taxa=num(S.config.taxaPct), extras=num(o.taxaEntrega)-num(o.desconto);
+  const calculado=Math.max(0,venda+extras), sugerido=Math.max(0,sug+extras);
+  const real=String(o.valorCobrado??'').trim()!==''&&num(o.valorCobrado)>0;
+  const total=real?num(o.valorCobrado):calculado;
+  return {venda,custo,calculado,sugerido,real,total,lucro:total*(1-taxa/100)-custo};
 }
 // aplica diferença de consumo no estoque: positivo desconta, negativo devolve
 async function aplicarEstoque(delta){
@@ -675,7 +680,7 @@ function renderEncomendas(){
         <div class="chips" style="justify-content:flex-end"><span class="chip ${ST_CHIP[o.status]||''}">${esc(o.status)}</span>${o.status!=='Cancelada'?`<span class="chip ${o.pago?'ok':'warn'}">${o.pago?'Pago':'A receber'}</span>`:''}</div></div>
       <ul class="ing">${(o.itens||[]).map(it=>{const rc=S.receitas[it.receitaId];return `<li><span>${fmt(num(it.qtd),0)}× ${esc(rc?rc.nome:it.nome||'Receita apagada')}</span><span class="muted">${brl(num(it.preco))}</span><span>${brl(num(it.qtd)*num(it.preco))}</span></li>`;}).join('')}</ul>
       <div class="pricebox">
-        <div><span class="label">Total</span><strong>${brl(r.total)}</strong>${num(o.taxaEntrega)||num(o.desconto)?`<small class="muted">${num(o.taxaEntrega)?'entrega '+brl(num(o.taxaEntrega)):''}${num(o.taxaEntrega)&&num(o.desconto)?' · ':''}${num(o.desconto)?'desconto '+brl(num(o.desconto)):''}</small>`:''}</div>
+        <div><span class="label">${r.real?'Cobrado':'Total'}</span><strong>${brl(r.total)}</strong><small class="muted">sugerido ${brl(r.sugerido)}${num(o.taxaEntrega)?' · entrega '+brl(num(o.taxaEntrega)):''}${num(o.desconto)?' · desconto '+brl(num(o.desconto)):''}</small></div>
         <div><span class="label">Custo</span><b>${brl(r.custo)}</b></div>
         <div><span class="label">Lucro</span><b style="color:var(--ok)">${brl(r.lucro)}</b></div>
       </div>
@@ -725,6 +730,7 @@ function renderEncEditor(){
       <fieldset><legend>Valores</legend><div class="fields">
         <label class="field"><span>Taxa de entrega (R$)</span><input data-eo="taxaEntrega" inputmode="decimal" value="${d.taxaEntrega===''?'':fin(num(d.taxaEntrega),2)}" placeholder="0,00"></label>
         <label class="field"><span>Desconto (R$)</span><input data-eo="desconto" inputmode="decimal" value="${d.desconto===''?'':fin(num(d.desconto),2)}" placeholder="0,00"></label>
+        <label class="field"><span>Valor real cobrado (R$)</span><input id="o-real" data-eo="valorCobrado" inputmode="decimal" value="${d.valorCobrado===''||d.valorCobrado==null?'':fin(num(d.valorCobrado),2)}" placeholder="igual ao total"></label>
         <div class="field"><span>Pagamento</span><div class="checks"><label><input type="checkbox" data-eo="pago" ${d.pago?'checked':''}> Já foi pago</label></div></div>
         <label class="field full"><span>Observações</span><input data-eo="obs" value="${esc(d.obs)}" placeholder="Ex.: escrever Parabéns Ana no bolo"></label>
       </div></fieldset>
@@ -742,10 +748,17 @@ function updateEncCalc(){
     const disp=num(i.estoque)+(velho[iid]||0);const falta=q-disp;
     return `<li><span>${esc(i.nome)}</span><span class="muted">${fmtQtd(q,i.unidade)}</span><span style="color:var(${falta>1e-9?'--bad':'--muted'})">${falta>1e-9?'faltam '+fmtQtd(falta,i.unidade):'ok'}</span></li>`;}).join('');
   const faltam=Object.entries(novo).filter(([iid,q])=>{const i=S.insumos[iid];return i&&q-(num(i.estoque)+(velho[iid]||0))>1e-9;}).length;
-  el.innerHTML=`<div class="label">Total da encomenda</div><strong class="big">${brl(r.total)}</strong>
-    <dl class="kv"><dt>Produtos</dt><dd>${brl(r.venda)}</dd>
+  const dif=r.total-r.sugerido;
+  const difTxt=Math.abs(dif)<0.005?'<span class="chip ok">Igual ao sugerido</span>':dif<0?`<span class="chip warn">${brl(-dif)} abaixo do sugerido</span>`:`<span class="chip ok">${brl(dif)} acima do sugerido</span>`;
+  el.innerHTML=`<div class="label">Valor sugerido para cobrar</div><strong class="big">${brl(r.sugerido)}</strong>
+    <p class="muted small">Preço sugerido de cada receita × unidades${num(d.taxaEntrega)||num(d.desconto)?', com entrega e desconto':''}.</p>
+    <div class="label" style="margin-top:6px">${r.real?'Valor real cobrado':'Total pelos preços da lista'}</div>
+    <strong style="font-family:var(--f-display);font-weight:400;font-size:1.5rem">${brl(r.total)}</strong>
+    <div class="chips">${difTxt}</div>
+    <dl class="kv"><dt>Produtos (preços da lista)</dt><dd>${brl(r.venda)}</dd>
       ${num(d.taxaEntrega)?`<dt>Entrega</dt><dd>${brl(num(d.taxaEntrega))}</dd>`:''}
       ${num(d.desconto)?`<dt>Desconto</dt><dd>− ${brl(num(d.desconto))}</dd>`:''}
+      ${r.real?`<dt>Total pela lista</dt><dd>${brl(r.calculado)}</dd>`:''}
       <dt class="sum">Custo de produção</dt><dd class="sum">${brl(r.custo)}</dd>
       <dt>Lucro estimado</dt><dd style="color:var(--ok)">${brl(r.lucro)}</dd></dl>
     <div class="label" style="margin-top:8px">Vai sair do estoque</div>
@@ -757,7 +770,7 @@ async function salvarEnc(){
   d.itens=d.itens.filter(it=>it.receitaId&&num(it.qtd)>0).map(it=>({receitaId:it.receitaId,nome:(S.receitas[it.receitaId]||{}).nome||'',qtd:num(it.qtd),preco:num(it.preco)}));
   if(!String(d.cliente).trim()){toast('Informe o nome do cliente.');$('#o-cli').focus();return;}
   if(!d.itens.length){toast('Adicione pelo menos uma receita com quantidade.');return;}
-  d.cliente=String(d.cliente).trim();d.taxaEntrega=num(d.taxaEntrega);d.desconto=num(d.desconto);d.pago=!!d.pago;
+  d.cliente=String(d.cliente).trim();d.taxaEntrega=num(d.taxaEntrega);d.desconto=num(d.desconto);d.valorCobrado=String(d.valorCobrado??'').trim()===''?'':num(d.valorCobrado);d.pago=!!d.pago;
   const velho=ENC.id?(S.encomendas[ENC.id].consumo||{}):{};
   const novo=d.status==='Cancelada'?{}:consumo(d.itens);
   d.consumo=novo;if(!d.criadoEm)d.criadoEm=new Date().toISOString();
@@ -778,7 +791,7 @@ async function produzir(id){
   const r=S.receitas[id];if(!r)return;
   const uso={};
   (r.itens||[]).forEach(it=>{uso[it.id]=(uso[it.id]||0)+num(it.qtd);});
-  (r.embalagens||[]).forEach(it=>{uso[it.id]=(uso[it.id]||0)+num(it.qtd)*num(r.rendimento);});
+  embLote(r).forEach(it=>{uso[it.id]=(uso[it.id]||0)+it.qtd;});
   let faltou=[];
   for(const [iid,q] of Object.entries(uso)){
     const i=S.insumos[iid];if(!i)continue;
