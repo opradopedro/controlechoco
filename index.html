@@ -623,7 +623,8 @@ async function salvarReceita(){
 // ---------- Encomendas ----------
 let ENC=null;
 const ST_CHIP={Confirmada:'warn',Entregue:'ok',Cancelada:'bad'};
-function precoPadrao(r){const c=calc(r);return num(r.precoAtual)>0?num(r.precoAtual):(isFinite(c.precoR)?c.precoR:0);}
+// Na encomenda, o preço de cada unidade vem do preço sugerido por unidade da receita
+function precoPadrao(r){const c=calc(r);return isFinite(c.precoR)?c.precoR:0;}
 function consumo(itens){
   const u={};
   (itens||[]).forEach(it=>{const r=S.receitas[it.receitaId];const q=num(it.qtd);if(!r||q<=0)return;
@@ -705,12 +706,12 @@ function openEnc(id){
 function encRowsHTML(){
   const rec=Object.entries(S.receitas).sort((a,b)=>String(a[1].nome).localeCompare(b[1].nome,'pt-BR'));
   if(!rec.length)return '<p class="muted small">Cadastre receitas na aba Receitas para lançar encomendas.</p>';
-  return `<div class="row erow rowhead"><span>Receita</span><span>Unidades</span><span>Preço un (R$)</span><span style="text-align:right">Subtotal</span><span></span></div>`+
+  return `<div class="row erow rowhead"><span>Receita</span><span>Unidades</span><span>Preço por unidade (R$)</span><span style="text-align:right">Subtotal</span><span></span></div>`+
   ENC.data.itens.map((it,k)=>`<div class="row erow" data-ek="${k}">
     <select data-ef="receitaId" aria-label="Receita"><option value="">Escolha…</option>${rec.map(([rid,r])=>`<option value="${rid}" ${rid===it.receitaId?'selected':''}>${esc(r.nome)}</option>`).join('')}</select>
-    <input data-ef="qtd" inputmode="decimal" value="${vIn(it.qtd)}" aria-label="Unidades">
+    <input data-ef="qtd" inputmode="numeric" value="${vIn(it.qtd)}" aria-label="Unidades" placeholder="ex.: 20">
     <input data-ef="preco" inputmode="decimal" value="${it.preco===''?'':fin(num(it.preco),2)}" aria-label="Preço por unidade">
-    <span class="c" data-sub>${brl(num(it.qtd)*num(it.preco))}</span>
+    <span class="c"><span data-sub>${brl(num(it.qtd)*num(it.preco))}</span><small class="muted" data-hint style="display:block;font-size:.74rem"></small></span>
     <button class="btn ghost" data-act="enc-rm" aria-label="Remover linha">✕</button></div>`).join('')+
   `<div><button class="btn ghost" data-act="enc-add">+ Adicionar receita</button></div>`;
 }
@@ -726,7 +727,7 @@ function renderEncEditor(){
         <label class="field"><span>Horário</span><input type="time" data-eo="hora" value="${esc(d.hora)}"></label>
       </div></fieldset>
       <fieldset><legend>Receitas da encomenda</legend><div class="rows" id="o-itens">${encRowsHTML()}</div>
-        <p class="muted small">O preço já vem com o que ela cobra hoje ou com o preço sugerido. Pode alterar.</p></fieldset>
+        <p class="muted small">Coloque quantas unidades (doces) a cliente quer. O preço por unidade vem do preço sugerido da receita, e o subtotal é unidades × preço por unidade. Pode alterar o preço se combinou outro valor.</p></fieldset>
       <fieldset><legend>Valores</legend><div class="fields">
         <label class="field"><span>Taxa de entrega (R$)</span><input data-eo="taxaEntrega" inputmode="decimal" value="${d.taxaEntrega===''?'':fin(num(d.taxaEntrega),2)}" placeholder="0,00"></label>
         <label class="field"><span>Desconto (R$)</span><input data-eo="desconto" inputmode="decimal" value="${d.desconto===''?'':fin(num(d.desconto),2)}" placeholder="0,00"></label>
@@ -742,7 +743,8 @@ function renderEncEditor(){
 }
 function updateEncCalc(){
   const el=$('#o-calc');if(!el)return;const d=ENC.data;const r=resumoEnc(d);
-  document.querySelectorAll('#o-itens .row[data-ek]').forEach(row=>{const it=d.itens[+row.dataset.ek];if(it)row.querySelector('[data-sub]').textContent=brl(num(it.qtd)*num(it.preco));});
+  document.querySelectorAll('#o-itens .row[data-ek]').forEach(row=>{const it=d.itens[+row.dataset.ek];if(it){row.querySelector('[data-sub]').textContent=brl(num(it.qtd)*num(it.preco));
+    const h=row.querySelector('[data-hint]'),r=S.receitas[it.receitaId];if(h)h.textContent=r&&num(it.qtd)?`${fmt(num(it.qtd),0)} × ${brl(num(it.preco))}`:'';}});
   const novo=consumo(d.itens), velho=ENC.id?(d.consumo||{}):{};
   const linhas=Object.entries(novo).map(([iid,q])=>{const i=S.insumos[iid];if(!i)return '';
     const disp=num(i.estoque)+(velho[iid]||0);const falta=q-disp;
@@ -751,7 +753,7 @@ function updateEncCalc(){
   const dif=r.total-r.sugerido;
   const difTxt=Math.abs(dif)<0.005?'<span class="chip ok">Igual ao sugerido</span>':dif<0?`<span class="chip warn">${brl(-dif)} abaixo do sugerido</span>`:`<span class="chip ok">${brl(dif)} acima do sugerido</span>`;
   el.innerHTML=`<div class="label">Valor sugerido para cobrar</div><strong class="big">${brl(r.sugerido)}</strong>
-    <p class="muted small">Preço sugerido de cada receita × unidades${num(d.taxaEntrega)||num(d.desconto)?', com entrega e desconto':''}.</p>
+    <p class="muted small">Preço sugerido por unidade de cada receita × unidades${num(d.taxaEntrega)||num(d.desconto)?', com entrega e desconto':''}.</p>
     <div class="label" style="margin-top:6px">${r.real?'Valor real cobrado':'Total pelos preços da lista'}</div>
     <strong style="font-family:var(--f-display);font-weight:400;font-size:1.5rem">${brl(r.total)}</strong>
     <div class="chips">${difTxt}</div>
