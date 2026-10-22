@@ -176,8 +176,8 @@ textarea:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
 .checks{display:flex;flex-wrap:wrap;gap:6px 14px}
 .checks label{display:flex;align-items:center;gap:6px;font-size:.9rem;color:var(--fg);font-weight:400}
 .checks input{width:auto;accent-color:var(--wine)}
-.erow{grid-template-columns:minmax(0,1fr) 84px 100px 92px 34px}
-@media (max-width:520px){.erow{grid-template-columns:minmax(0,1fr) 70px 80px}.erow .c{grid-column:1/3}}
+.erow{grid-template-columns:minmax(0,1fr) 96px 80px 92px 96px 34px}
+@media (max-width:620px){.erow{grid-template-columns:minmax(0,1fr) 90px;row-gap:6px}.erow .c{text-align:left}.erow.rowhead{display:none}}
 .card.enc.off{opacity:.6}
 .card.enc .head .chips{flex-direction:column;align-items:flex-end}
 </style>
@@ -624,9 +624,16 @@ async function salvarReceita(){
 let ENC=null;
 const ST_CHIP={Confirmada:'warn',Entregue:'ok',Cancelada:'bad'};
 function precoPadrao(r){const c=calc(r);return num(r.precoAtual)>0?num(r.precoAtual):(isFinite(c.precoR)?c.precoR:0);}
+// Cada linha da encomenda pode ser vendida por unidade ou por cento (100 unidades).
+// Encomendas antigas sem essa informação: quantidade fracionada com preço alto é tratada como cento.
+const POR_CENTO_CATS=['Docinhos','Doces finos','Trufas'];
+function porDe(it){if(it.por)return it.por;const q=num(it.qtd),p=num(it.preco);return q>0&&q<1&&p>=20?'cento':'un';}
+const fatorPor=it=>porDe(it)==='cento'?100:1;
+const unidadesDe=it=>num(it.qtd)*fatorPor(it);
+function sugeridoLinha(it){const r=S.receitas[it.receitaId];if(!r)return 0;const c=calc(r);return (isFinite(c.precoR)?c.precoR:0)*fatorPor(it);}
 function consumo(itens){
   const u={};
-  (itens||[]).forEach(it=>{const r=S.receitas[it.receitaId];const q=num(it.qtd);if(!r||q<=0)return;
+  (itens||[]).forEach(it=>{const r=S.receitas[it.receitaId];const q=unidadesDe(it);if(!r||q<=0)return;
     const f=q/Math.max(1,num(r.rendimento)||1);
     (r.itens||[]).forEach(x=>{if(x.id)u[x.id]=(u[x.id]||0)+num(x.qtd)*f;});
     embLote(r).forEach(x=>{if(x.id)u[x.id]=(u[x.id]||0)+x.qtd*f;});
@@ -636,8 +643,8 @@ function consumo(itens){
 }
 function resumoEnc(o){
   let venda=0,custo=0,sug=0;
-  (o.itens||[]).forEach(it=>{const r=S.receitas[it.receitaId];const q=num(it.qtd);venda+=q*num(it.preco);
-    if(r){const c=calc(r);custo+=q*c.unit;sug+=q*(isFinite(c.precoR)?c.precoR:0);}});
+  (o.itens||[]).forEach(it=>{const r=S.receitas[it.receitaId];venda+=num(it.qtd)*num(it.preco);
+    if(r){const u=unidadesDe(it);custo+=u*calc(r).unit;sug+=num(it.qtd)*sugeridoLinha(it);}});
   const taxa=num(S.config.taxaPct), extras=num(o.taxaEntrega)-num(o.desconto);
   const calculado=Math.max(0,venda+extras), sugerido=Math.max(0,sug+extras);
   const real=String(o.valorCobrado??'').trim()!==''&&num(o.valorCobrado)>0;
@@ -678,7 +685,7 @@ function renderEncomendas(){
     return `<article class="card enc ${o.status==='Cancelada'?'off':''}">
       <div class="head"><div style="min-width:0"><span class="label">${esc(dataLonga(o.dataEntrega))}${o.hora?' · '+esc(o.hora):''}</span><h3>${esc(o.cliente||'Sem nome')}</h3>${o.contato?`<p class="muted small">${esc(o.contato)}</p>`:''}</div>
         <div class="chips" style="justify-content:flex-end"><span class="chip ${ST_CHIP[o.status]||''}">${esc(o.status)}</span>${o.status!=='Cancelada'?`<span class="chip ${o.pago?'ok':'warn'}">${o.pago?'Pago':'A receber'}</span>`:''}</div></div>
-      <ul class="ing">${(o.itens||[]).map(it=>{const rc=S.receitas[it.receitaId];return `<li><span>${fmt(num(it.qtd),0)}× ${esc(rc?rc.nome:it.nome||'Receita apagada')}</span><span class="muted">${brl(num(it.preco))}</span><span>${brl(num(it.qtd)*num(it.preco))}</span></li>`;}).join('')}</ul>
+      <ul class="ing">${(o.itens||[]).map(it=>{const rc=S.receitas[it.receitaId];return `<li><span>${porDe(it)==='cento'?fmt(num(it.qtd),2)+' cento ('+fmt(unidadesDe(it),0)+' un)':fmt(num(it.qtd),0)+'×'} ${esc(rc?rc.nome:it.nome||'Receita apagada')}</span><span class="muted">${brl(num(it.preco))}${porDe(it)==='cento'?'/cento':''}</span><span>${brl(num(it.qtd)*num(it.preco))}</span></li>`;}).join('')}</ul>
       <div class="pricebox">
         <div><span class="label">${r.real?'Cobrado':'Total'}</span><strong>${brl(r.total)}</strong><small class="muted">sugerido ${brl(r.sugerido)}${num(o.taxaEntrega)?' · entrega '+brl(num(o.taxaEntrega)):''}${num(o.desconto)?' · desconto '+brl(num(o.desconto)):''}</small></div>
         <div><span class="label">Custo</span><b>${brl(r.custo)}</b></div>
@@ -705,13 +712,14 @@ function openEnc(id){
 function encRowsHTML(){
   const rec=Object.entries(S.receitas).sort((a,b)=>String(a[1].nome).localeCompare(b[1].nome,'pt-BR'));
   if(!rec.length)return '<p class="muted small">Cadastre receitas na aba Receitas para lançar encomendas.</p>';
-  return `<div class="row erow rowhead"><span>Receita</span><span>Unidades</span><span>Preço un (R$)</span><span style="text-align:right">Subtotal</span><span></span></div>`+
-  ENC.data.itens.map((it,k)=>`<div class="row erow" data-ek="${k}">
+  return `<div class="row erow rowhead"><span>Receita</span><span>Vende por</span><span>Quantidade</span><span>Preço (R$)</span><span style="text-align:right">Subtotal</span><span></span></div>`+
+  ENC.data.itens.map((it,k)=>{const por=porDe(it);return `<div class="row erow" data-ek="${k}">
     <select data-ef="receitaId" aria-label="Receita"><option value="">Escolha…</option>${rec.map(([rid,r])=>`<option value="${rid}" ${rid===it.receitaId?'selected':''}>${esc(r.nome)}</option>`).join('')}</select>
-    <input data-ef="qtd" inputmode="decimal" value="${vIn(it.qtd)}" aria-label="Unidades">
-    <input data-ef="preco" inputmode="decimal" value="${it.preco===''?'':fin(num(it.preco),2)}" aria-label="Preço por unidade">
-    <span class="c" data-sub>${brl(num(it.qtd)*num(it.preco))}</span>
-    <button class="btn ghost" data-act="enc-rm" aria-label="Remover linha">✕</button></div>`).join('')+
+    <select data-ef="por" aria-label="Vende por"><option value="cento" ${por==='cento'?'selected':''}>Cento</option><option value="un" ${por==='un'?'selected':''}>Unidade</option></select>
+    <input data-ef="qtd" inputmode="decimal" value="${vIn(it.qtd)}" aria-label="Quantidade" placeholder="${por==='cento'?'ex.: 0,5':'ex.: 12'}">
+    <input data-ef="preco" inputmode="decimal" value="${it.preco===''?'':fin(num(it.preco),2)}" aria-label="Preço">
+    <span class="c"><span data-sub>${brl(num(it.qtd)*num(it.preco))}</span><small class="muted" data-hint style="display:block;font-size:.74rem"></small></span>
+    <button class="btn ghost" data-act="enc-rm" aria-label="Remover linha">✕</button></div>`;}).join('')+
   `<div><button class="btn ghost" data-act="enc-add">+ Adicionar receita</button></div>`;
 }
 function renderEncEditor(){
@@ -742,7 +750,10 @@ function renderEncEditor(){
 }
 function updateEncCalc(){
   const el=$('#o-calc');if(!el)return;const d=ENC.data;const r=resumoEnc(d);
-  document.querySelectorAll('#o-itens .row[data-ek]').forEach(row=>{const it=d.itens[+row.dataset.ek];if(it)row.querySelector('[data-sub]').textContent=brl(num(it.qtd)*num(it.preco));});
+  document.querySelectorAll('#o-itens .row[data-ek]').forEach(row=>{const it=d.itens[+row.dataset.ek];if(!it)return;
+    row.querySelector('[data-sub]').textContent=brl(num(it.qtd)*num(it.preco));
+    const h=row.querySelector('[data-hint]');if(h){const sg=sugeridoLinha(it),cento=porDe(it)==='cento';
+      h.textContent=it.receitaId?`sugerido ${brl(sg)}${cento?'/cento':'/un'}${cento&&num(it.qtd)?' · '+fmt(unidadesDe(it),0)+' un':''}`:'';}});
   const novo=consumo(d.itens), velho=ENC.id?(d.consumo||{}):{};
   const linhas=Object.entries(novo).map(([iid,q])=>{const i=S.insumos[iid];if(!i)return '';
     const disp=num(i.estoque)+(velho[iid]||0);const falta=q-disp;
@@ -751,7 +762,7 @@ function updateEncCalc(){
   const dif=r.total-r.sugerido;
   const difTxt=Math.abs(dif)<0.005?'<span class="chip ok">Igual ao sugerido</span>':dif<0?`<span class="chip warn">${brl(-dif)} abaixo do sugerido</span>`:`<span class="chip ok">${brl(dif)} acima do sugerido</span>`;
   el.innerHTML=`<div class="label">Valor sugerido para cobrar</div><strong class="big">${brl(r.sugerido)}</strong>
-    <p class="muted small">Preço sugerido de cada receita × unidades${num(d.taxaEntrega)||num(d.desconto)?', com entrega e desconto':''}.</p>
+    <p class="muted small">Preço sugerido de cada receita × quantidade${num(d.taxaEntrega)||num(d.desconto)?', com entrega e desconto':''}.</p>
     <div class="label" style="margin-top:6px">${r.real?'Valor real cobrado':'Total pelos preços da lista'}</div>
     <strong style="font-family:var(--f-display);font-weight:400;font-size:1.5rem">${brl(r.total)}</strong>
     <div class="chips">${difTxt}</div>
@@ -767,7 +778,7 @@ function updateEncCalc(){
 }
 async function salvarEnc(){
   const d=clone(ENC.data);
-  d.itens=d.itens.filter(it=>it.receitaId&&num(it.qtd)>0).map(it=>({receitaId:it.receitaId,nome:(S.receitas[it.receitaId]||{}).nome||'',qtd:num(it.qtd),preco:num(it.preco)}));
+  d.itens=d.itens.filter(it=>it.receitaId&&num(it.qtd)>0).map(it=>({receitaId:it.receitaId,nome:(S.receitas[it.receitaId]||{}).nome||'',por:porDe(it),qtd:num(it.qtd),preco:num(it.preco)}));
   if(!String(d.cliente).trim()){toast('Informe o nome do cliente.');$('#o-cli').focus();return;}
   if(!d.itens.length){toast('Adicione pelo menos uma receita com quantidade.');return;}
   d.cliente=String(d.cliente).trim();d.taxaEntrega=num(d.taxaEntrega);d.desconto=num(d.desconto);d.valorCobrado=String(d.valorCobrado??'').trim()===''?'':num(d.valorCobrado);d.pago=!!d.pago;
@@ -1030,12 +1041,19 @@ $('#importar').addEventListener('change',async e=>{
 });
 function encInput(e){
   if(!ENC)return;const t=e.target;
+  // selects e caixas de marcar respondem só ao "change"; campos de texto só ao "input" (evita aplicar a mesma mudança duas vezes)
+  const ehEscolha=t.tagName==='SELECT'||t.type==='checkbox'||t.type==='date'||t.type==='time';
+  if(ehEscolha!==(e.type==='change'))return;
   if(t.dataset.eo){ENC.data[t.dataset.eo]=t.type==='checkbox'?t.checked:t.value;updateEncCalc();return;}
   const row=t.closest('.row[data-ek]');if(!row||!t.dataset.ef)return;
   const it=ENC.data.itens[+row.dataset.ek];
   if(t.dataset.ef==='receitaId'){if(it.receitaId===t.value)return;it.receitaId=t.value;const r=S.receitas[t.value];
-    if(r){it.preco=Math.round(precoPadrao(r)*100)/100;row.querySelector('[data-ef="preco"]').value=fin(it.preco,2);if(it.qtd==='')it.qtd='';}}
-  else it[t.dataset.ef]=num(t.value);
+    if(r){if(!it.por&&it.qtd==='')it.por=POR_CENTO_CATS.includes(catRec(r))?'cento':'un';
+      it.preco=Math.round(precoPadrao(r)*fatorPor(it)*100)/100;$('#o-itens').innerHTML=encRowsHTML();}}
+  else if(t.dataset.ef==='por'){const de=fatorPor(it);it.por=t.value;const para=fatorPor(it);
+    if(it.qtd!=='')it.qtd=Math.round(num(it.qtd)*de/para*1000)/1000;if(it.preco!=='')it.preco=Math.round(num(it.preco)/de*para*100)/100;
+    $('#o-itens').innerHTML=encRowsHTML();}
+  else{if(!it.por)it.por=porDe(it);it[t.dataset.ef]=num(t.value);}
   updateEncCalc();
 }
 $('#enceditor').addEventListener('input',encInput);
