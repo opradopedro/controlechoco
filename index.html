@@ -490,6 +490,7 @@ function cardHTML(id,r){
     <details><summary>Ficha técnica</summary>${fichaHTML(r)}</details>
     <div class="actions">
       <button class="btn" data-act="editar-receita" data-id="${id}">Editar</button>
+      <button class="btn ghost" data-act="duplicar-receita" data-id="${id}" title="Cria uma receita nova com tudo desta">Duplicar</button>
       <button class="btn ghost" data-act="produzir" data-id="${id}" data-confirm title="Desconta 1 lote do estoque">Produzi 1 lote</button>
     </div>
   </article>`;
@@ -531,10 +532,12 @@ function rowsHTML(kind){
     <button class="btn ghost" data-act="rm-row" aria-label="Remover linha">✕</button></div>`;}).join('')+
   `<div><button class="btn ghost" data-act="add-row" data-kind="${kind}">+ Adicionar ${tipo}</button></div>`;
 }
-function openEditor(id){
+function openEditor(id,copia){
   const base=id?clone(S.receitas[id]):{nome:'',categoria:'Docinhos',descricao:'',rendimento:'',pesoUn:'',validadeDias:'',armazenamento:'Temperatura ambiente',minutos:'',tempoForno:'',margem:'',precoAtual:'',preparo:'',obs:'',alergenos:[],itens:[{id:'',qtd:''}],embalagens:[{id:'',qtd:''}]};
   base.itens=base.itens||[];base.embalagens=id?embLote(base).map(x=>({id:x.id,qtd:Math.round(x.qtd*1000)/1000})):(base.embalagens||[]);base.embPorLote=true;base.alergenos=base.alergenos||[];base.categoria=catRec(base);
-  E={id:id||null,data:base};renderEditor();
+  // Duplicar: abre uma receita nova já preenchida com tudo da original, para ajustar e salvar
+  if(copia){delete base.exemplo;base.nome=(String(base.nome||'').trim()+' (cópia)').trim();}
+  E={id:copia?null:(id||null),copiaDe:copia?(S.receitas[id]||{}).nome:null,data:base};renderEditor();
   $('#editor').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
 }
 const vIn=v=>v===''||v==null?'':fin(num(v),3);
@@ -544,7 +547,7 @@ function renderEditor(){
   const d=E.data;
   const sel=(key,arr)=>`<select id="e-${key}" data-e="${key}">${arr.map(o=>`<option ${d[key]===o?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
   el.innerHTML=`<div class="panel edit">
-    <div class="bar"><h3>${E.id?'Editar receita':'Nova receita'}</h3>${d.exemplo?'<span class="chip ex">exemplo</span>':''}</div>
+    <div class="bar"><h3>${E.id?'Editar receita':E.copiaDe?'Cópia de '+esc(E.copiaDe):'Nova receita'}</h3>${d.exemplo?'<span class="chip ex">exemplo</span>':''}</div>
     <div class="edgrid">
       <div class="edmain">
         <fieldset><legend>Produto</legend><div class="fields">
@@ -934,6 +937,7 @@ document.addEventListener('click',async e=>{
   if(b.hasAttribute('data-confirm')&&!armed(b))return;
   if(act==='nova-receita')openEditor(null);
   else if(act==='editar-receita')openEditor(id);
+  else if(act==='duplicar-receita'){openEditor(id,true);toast('Cópia aberta. Ajuste o que quiser e salve.');setTimeout(()=>{const n=$('#e-nome');if(n){n.focus();n.select();}},50);}
   else if(act==='cancelar-receita'){E=null;renderEditor();}
   else if(act==='salvar-receita')salvarReceita();
   else if(act==='apagar-receita'){const rid=E.id;E=null;renderEditor();await remove('receitas',rid);toast('Receita apagada');}
