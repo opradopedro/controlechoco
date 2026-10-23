@@ -145,6 +145,22 @@ input[type=month]{width:auto}
 .specs small{font-size:.74rem;color:var(--muted);overflow-wrap:anywhere}
 @media (max-width:380px){.specs{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .pricebox{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:end}
+.card.enc .pricebox{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.card.enc .pricebox>div:first-child{grid-column:1/-1}
+.mesnav{display:inline-flex;align-items:center;gap:2px;background:var(--sunk);border-radius:99px;padding:3px}
+.mesnav input{width:auto;border:0;background:transparent;font-weight:600;padding:6px 4px}
+.mesnav .btn{padding:6px 12px;font-size:1.1rem;line-height:1}
+.stat small{display:block;font-size:.76rem;margin-top:2px}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:start}
+.hist{display:flex;flex-direction:column;gap:8px;overflow-x:auto}
+.hrow{display:grid;grid-template-columns:120px minmax(90px,1fr) minmax(90px,1fr) 100px;gap:12px;align-items:center;font-size:.9rem;min-width:440px}
+.hrow.hhead{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.hrow.cur>span:first-child{font-weight:700;color:var(--wine)}
+.hb{position:relative;height:22px;background:var(--sunk);border-radius:6px;overflow:hidden}
+.hb i{position:absolute;left:0;top:0;bottom:0;border-radius:6px}
+.hb i.in{background:var(--ok-soft);border-right:2px solid var(--ok)}
+.hb i.out{background:var(--bad-soft);border-right:2px solid var(--bad)}
+.hb em{position:relative;font-style:normal;font-size:.8rem;padding-left:8px;line-height:22px;font-weight:600}
 .pricebox div{display:flex;flex-direction:column;min-width:0}
 .pricebox strong{font-family:var(--f-display);font-weight:400;font-size:1.9rem;color:var(--wine);line-height:1.05}
 .pricebox small{font-size:.76rem}
@@ -207,6 +223,7 @@ textarea:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
     <button role="tab" data-tab="receitas" aria-selected="false">Receitas</button>
     <button role="tab" data-tab="insumos" aria-selected="false">Estoque</button>
     <button role="tab" data-tab="gastos" aria-selected="false">Gastos</button>
+    <button role="tab" data-tab="fechamento" aria-selected="false">Fechamento</button>
     <button role="tab" data-tab="ajustes" aria-selected="false">Ajustes</button>
   </nav>
 
@@ -216,7 +233,7 @@ textarea:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
   <section id="tab-encomendas" class="tab" style="display:flex;flex-direction:column;gap:16px">
     <div class="bar">
       <div class="left"><h2>Encomendas</h2><p class="muted small">Pedidos dos clientes. Ao lançar, os ingredientes e embalagens saem do estoque.</p></div>
-      <button class="btn primary" data-act="enc-nova">+ Nova encomenda</button>
+      <div class="actions" style="align-items:center"><span id="enc-mesnav"></span><button class="btn primary" data-act="enc-nova">+ Nova encomenda</button></div>
     </div>
     <div id="encstats" class="stats"></div>
     <div id="enceditor"></div>
@@ -252,6 +269,7 @@ textarea:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
           <button data-f="ingrediente" aria-pressed="false">Ingredientes</button>
           <button data-f="embalagem" aria-pressed="false">Embalagens</button>
         </div>
+        <label class="field search"><span class="sr">Buscar no estoque</span><input id="ins-busca" type="search" placeholder="Buscar material…" autocomplete="off"></label>
       </div>
       <div id="insumos" class="list"></div>
     </div>
@@ -289,6 +307,14 @@ textarea:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
   </section>
 
   <!-- AJUSTES -->
+  <section id="tab-fechamento" class="tab" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div class="bar">
+      <div class="left"><h2>Fechamento de <span id="f-titulo"></span></h2><p class="muted small">Quanto entrou, quanto saiu e quanto de estoque foi usado no mês. As encomendas contam pela data de entrega.</p></div>
+      <span id="f-mesnav"></span>
+    </div>
+    <div id="fechamento" style="display:flex;flex-direction:column;gap:16px"></div>
+  </section>
+
   <section id="tab-ajustes" class="tab" hidden style="display:flex;flex-direction:column;gap:16px">
     <div class="left"><h2>Ajustes de preço</h2><p class="muted small">Valores usados em todas as receitas. Cada receita pode ter a própria margem.</p></div>
     <div class="panel">
@@ -339,6 +365,7 @@ function pagTxt(g){
   const n=num(g.parcelas);
   return g.pagamento==='Crédito'&&n>1?`Crédito ${n}x de ${brl(num(g.valor)/n)}`:g.pagamento==='Crédito'?'Crédito à vista':g.pagamento;
 }
+const semAcento=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 const DEF={valorHora:15,gasPct:10,margem:30,taxaPct:0};
 
 const S={insumos:{},gastos:{},receitas:{},encomendas:{},config:{...DEF},mode:'loading',loaded:{},tab:'encomendas',insFiltro:'todos',recCat:'todas',recBusca:''};
@@ -423,7 +450,7 @@ function renderAll(){
   if(S.mode==='live'){m.className='mode live';m.textContent='Salvando na nuvem';}
   else if(S.mode==='local'){m.className='mode live';m.textContent='Salvo neste aparelho';}
   else if(S.mode==='demo'){m.className='mode demo';m.textContent='Modo demonstração';}
-  renderNotice();renderReceitas();renderEncomendas();renderInsumos();renderGastos();renderCfg();
+  renderNotice();renderReceitas();renderEncomendas();renderInsumos();renderGastos();renderFechamento();renderCfg();
   if(E)updateEditorCalc();
   if(ENC)updateEncCalc();
 }
@@ -675,24 +702,28 @@ function dataLonga(s){if(!s)return 'sem data';const [y,m,d]=s.split('-').map(Num
 
 function renderEncomendas(){
   const all=Object.entries(S.encomendas);
-  const mes=hoje().slice(0,7);
-  const doMes=all.filter(([,o])=>o.status!=='Cancelada'&&String(o.dataEntrega||'').slice(0,7)===mes);
+  const mes=$('#enc-mes')?.value||hoje().slice(0,7);
+  const doMes=all.filter(([,o])=>o.status!=='Cancelada'&&mesDe(o)===mes);
   const fat=doMes.reduce((s,[,o])=>s+resumoEnc(o).total,0), luc=doMes.reduce((s,[,o])=>s+resumoEnc(o).lucro,0);
-  const receber=all.filter(([,o])=>o.status!=='Cancelada'&&!o.pago).reduce((s,[,o])=>s+resumoEnc(o).total,0);
-  $('#encstats').innerHTML=`<div class="stat"><span class="label">Encomendas no mês</span><b>${doMes.length}</b></div>
-    <div class="stat"><span class="label">Faturamento do mês</span><b>${brl(fat)}</b></div>
+  const receber=doMes.filter(([,o])=>!o.pago).reduce((s,[,o])=>s+resumoEnc(o).total,0);
+  $('#encstats').innerHTML=`<div class="stat"><span class="label">Encomendas em ${esc(nomeMes(mes).split(' ')[0].toLowerCase())}</span><b>${doMes.length}</b></div>
+    <div class="stat"><span class="label">Faturamento</span><b>${brl(fat)}</b></div>
     <div class="stat"><span class="label">Lucro estimado</span><b style="color:var(--ok)">${brl(luc)}</b></div>
-    <div class="stat"><span class="label">A receber</span><b style="color:var(${receber?'--warn':'--fg'})">${brl(receber)}</b></div>`;
+    <div class="stat"><span class="label">A receber no mês</span><b style="color:var(${receber?'--warn':'--fg'})">${brl(receber)}</b></div>`;
   const el=$('#encomendas');
   if((S.mode==='loading'||S.mode==='live')&&!S.loaded.encomendas){el.innerHTML='<div class="empty">Carregando encomendas…</div>';return;}
   if(!all.length){el.innerHTML='<div class="empty">Nenhuma encomenda ainda. Toque em <b>+ Nova encomenda</b>, escolha as receitas e as quantidades, e o estoque é descontado na hora.</div>';return;}
-  const abertas=all.filter(([,o])=>o.status==='Confirmada').sort((a,b)=>String(a[1].dataEntrega).localeCompare(String(b[1].dataEntrega)));
-  const fechadas=all.filter(([,o])=>o.status!=='Confirmada').sort((a,b)=>String(b[1].dataEntrega).localeCompare(String(a[1].dataEntrega)));
+  const pendOutros=all.filter(([,o])=>o.status==='Confirmada'&&mesDe(o)!==mes);
+  const daqui=all.filter(([,o])=>mesDe(o)===mes);
+  const avisoOutros=pendOutros.length?`<div class="notice"><span>${pendOutros.length} ${pendOutros.length==1?'encomenda confirmada está':'encomendas confirmadas estão'} em outros meses: ${[...new Set(pendOutros.map(([,o])=>nomeMes(mesDe(o))))].join(', ')}.</span></div>`:'';
+  if(!daqui.length){el.innerHTML=avisoOutros+`<div class="empty">Nenhuma encomenda com entrega em ${nomeMes(mes).toLowerCase()}.</div>`;return;}
+  const abertas=daqui.filter(([,o])=>o.status==='Confirmada').sort((a,b)=>String(a[1].dataEntrega).localeCompare(String(b[1].dataEntrega)));
+  const fechadas=daqui.filter(([,o])=>o.status!=='Confirmada').sort((a,b)=>String(b[1].dataEntrega).localeCompare(String(a[1].dataEntrega)));
   const card=([id,o])=>{const r=resumoEnc(o);const val=o.status==='Cancelada'?'':validadeEnc(o);
     return `<article class="card enc ${o.status==='Cancelada'?'off':''}">
       <div class="head"><div style="min-width:0"><span class="label">${esc(dataLonga(o.dataEntrega))}${o.hora?' · '+esc(o.hora):''}</span><h3>${esc(o.cliente||'Sem nome')}</h3>${o.contato?`<p class="muted small">${esc(o.contato)}</p>`:''}</div>
         <div class="chips" style="justify-content:flex-end"><span class="chip ${ST_CHIP[o.status]||''}">${esc(o.status)}</span>${o.status!=='Cancelada'?`<span class="chip ${o.pago?'ok':'warn'}">${o.pago?'Pago':'A receber'}</span>`:''}</div></div>
-      <ul class="ing">${(o.itens||[]).map(it=>{const rc=S.receitas[it.receitaId];return `<li><span>${fmt(num(it.qtd),0)}× ${esc(rc?rc.nome:it.nome||'Receita apagada')}</span><span class="muted">${brl(num(it.preco))}</span><span>${brl(num(it.qtd)*num(it.preco))}</span></li>`;}).join('')}</ul>
+      <ul class="ing">${(o.itens||[]).map(it=>{const rc=S.receitas[it.receitaId];return `<li><span>${fmt(num(it.qtd),2)}× ${esc(rc?rc.nome:it.nome||'Receita apagada')}</span><span class="muted">${brl(num(it.preco))}</span><span>${brl(num(it.qtd)*num(it.preco))}</span></li>`;}).join('')}</ul>
       <div class="pricebox">
         <div><span class="label">${r.real?'Cobrado':'Total'}</span><strong>${brl(r.total)}</strong><small class="muted">sugerido ${brl(r.sugerido)}${num(o.taxaEntrega)?' · entrega '+brl(num(o.taxaEntrega)):''}${num(o.desconto)?' · desconto '+brl(num(o.desconto)):''}</small></div>
         <div><span class="label">Custo</span><b>${brl(r.custo)}</b></div>
@@ -708,7 +739,7 @@ function renderEncomendas(){
         ${o.status==='Confirmada'?`<button class="btn ghost danger" data-act="enc-cancelar" data-id="${id}" data-confirm title="Devolve os itens ao estoque">Cancelar</button>`:''}
         ${o.status!=='Confirmada'?`<button class="btn ghost danger" data-act="enc-apagar" data-id="${id}" data-confirm>Apagar</button>`:''}
       </div></article>`;};
-  el.innerHTML=(abertas.length?`<section class="group"><div class="ghead"><h3>Próximas entregas</h3><span class="muted small">${abertas.length}</span></div><div class="grid">${abertas.map(card).join('')}</div></section>`:'')+
+  el.innerHTML=avisoOutros+(abertas.length?`<section class="group"><div class="ghead"><h3>A entregar</h3><span class="muted small">${abertas.length}</span></div><div class="grid">${abertas.map(card).join('')}</div></section>`:'')+
     (fechadas.length?`<section class="group"><div class="ghead"><h3>Entregues e canceladas</h3><span class="muted small">${fechadas.length}</span></div><div class="grid">${fechadas.map(card).join('')}</div></section>`:'');
 }
 function openEnc(id){
@@ -816,7 +847,7 @@ async function salvarEnc(){
   d.consumo=novo;if(!d.criadoEm)d.criadoEm=new Date().toISOString();
   const id=ENC.id||newId('encomendas');
   const btn=document.querySelector('[data-act="enc-salvar"]');if(btn)btn.disabled=true;
-  const editando=!!ENC.id;
+  const editando=!!ENC.id;if(d.dataEntrega&&$('#enc-mes'))$('#enc-mes').value=d.dataEntrega.slice(0,7);
   if(await save('encomendas',id,d)){await aplicarEstoque(diff(novo,velho));ENC=null;renderEncEditor();toast(editando?'Encomenda salva e estoque ajustado':'Encomenda lançada e estoque descontado');}
   else if(btn)btn.disabled=false;
 }
@@ -851,10 +882,12 @@ function renderInsumos(){
     <div class="stat"><span class="label">Abaixo do mínimo</span><b style="color:var(${low.length?'--warn':'--ok'})">${low.length}</b></div>
     <div class="stat"><span class="label">Valor em estoque</span><b>${brl(valor)}</b></div>`;
   const el=$('#insumos');
-  const list=all.filter(([,i])=>S.insFiltro==='todos'||i.tipo===S.insFiltro).sort((a,b)=>{
+  const q=semAcento(S.insBusca||'');
+  const list=all.filter(([,i])=>(S.insFiltro==='todos'||i.tipo===S.insFiltro)&&(!q||semAcento(i.nome).includes(q))).sort((a,b)=>{
     const la=num(a[1].minimo)>0&&num(a[1].estoque)<num(a[1].minimo), lb=num(b[1].minimo)>0&&num(b[1].estoque)<num(b[1].minimo);
     return (lb-la)||String(a[1].nome).localeCompare(b[1].nome,'pt-BR');});
   if((S.mode==='loading'||S.mode==='live')&&!S.loaded.insumos){el.innerHTML='<div class="empty">Carregando estoque…</div>';return;}
+  if(!list.length&&q){el.innerHTML=`<div class="empty">Nenhum material com “${esc(S.insBusca)}”.</div>`;return;}
   if(!list.length){el.innerHTML='<div class="empty">Nada por aqui. Toque em <b>+ Novo item</b> e cadastre o que você compra, com o tamanho da embalagem e o preço.</div>';return;}
   el.innerHTML=list.map(([id,i])=>{
     const est=num(i.estoque),min=num(i.minimo);const ratio=min>0?Math.min(1,est/(min*2)):1;
@@ -902,6 +935,78 @@ function renderInsForm(){
     ${INSF.id?'<button class="btn danger" type="button" data-act="apagar-insumo" data-confirm style="margin-left:auto">Apagar item</button>':''}</div>
   </form>`;
   $('#i-nome').focus();
+}
+
+
+// ---------- Mês de referência ----------
+const nomeMes=m=>{const [y,mm]=m.split('-');const s=new Date(+y,+mm-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});return s.charAt(0).toUpperCase()+s.slice(1);};
+const somaMes=(m,k)=>{const [y,mm]=m.split('-').map(Number);const d=new Date(y,mm-1+k,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');};
+const mesDe=o=>String(o.dataEntrega||'').slice(0,7)||hoje().slice(0,7);
+function mesNavHTML(id){return `<div class="mesnav"><button class="btn ghost" data-mes="${id}" data-k="-1" aria-label="Mês anterior">‹</button><input type="month" id="${id}" aria-label="Mês de referência"><button class="btn ghost" data-mes="${id}" data-k="1" aria-label="Próximo mês">›</button></div>`;}
+
+// ---------- Fechamento ----------
+function fechamento(mes){
+  const encs=Object.entries(S.encomendas).filter(([,o])=>o.status!=='Cancelada'&&mesDe(o)===mes);
+  let fat=0,rec=0,custo=0,unid=0;const usado={},vendidos={};
+  encs.forEach(([,o])=>{const r=resumoEnc(o);fat+=r.total;if(o.pago)rec+=r.total;custo+=r.custo;
+    for(const [k,q] of Object.entries(o.consumo||{}))usado[k]=(usado[k]||0)+num(q);
+    (o.itens||[]).forEach(it=>{const rc=S.receitas[it.receitaId];const nome=rc?rc.nome:(it.nome||'Receita apagada');const v=vendidos[nome]=vendidos[nome]||{un:0,val:0};
+      v.un+=num(it.qtd);v.val+=num(it.qtd)*num(it.preco);unid+=num(it.qtd);});});
+  let estoque=0;const itensUsados=Object.entries(usado).map(([k,q])=>{const i=S.insumos[k];const v=q*custoUn(i);estoque+=v;return {nome:i?i.nome:'Item apagado',un:i?i.unidade:'',q,v};}).sort((a,b)=>b.v-a.v);
+  const parc=parcelasDoMes(mes);const gastos=parc.reduce((s,x)=>s+x.valor,0);
+  const porCat={};parc.forEach(x=>{const c=catGasto(x.g);porCat[c]=(porCat[c]||0)+x.valor;});
+  const porPag={};parc.forEach(x=>{const p=x.g.pagamento||'Sem forma';porPag[p]=(porPag[p]||0)+x.valor;});
+  const taxa=num(S.config.taxaPct);
+  return {encs,fat,rec,receber:fat-rec,custo,unid,estoque,itensUsados,gastos,porCat,porPag,
+    vendidos:Object.entries(vendidos).sort((a,b)=>b[1].val-a[1].val),resultado:fat-gastos,lucro:fat*(1-taxa/100)-custo};
+}
+function barras(obj){const e=Object.entries(obj).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);if(!e.length)return '<p class="muted small">Nada lançado neste mês.</p>';
+  const max=Math.max(...e.map(x=>x[1]));return `<div class="catbars">${e.map(([c,v])=>`<div class="catbar"><span>${esc(c)}</span><span class="track"><i style="width:${v/max*100}%"></i></span><span class="val">${brl(v)}</span></div>`).join('')}</div>`;}
+function renderFechamento(){
+  const el=$('#fechamento');if(!el)return;const mes=$('#f-mes')?.value||hoje().slice(0,7);const f=fechamento(mes);
+  $('#f-titulo').textContent=nomeMes(mes);
+  const res=f.resultado;
+  el.innerHTML=`<div class="stats">
+      <div class="stat"><span class="label">Faturado</span><b>${brl(f.fat)}</b><small class="muted">${f.encs.length} ${f.encs.length==1?'encomenda':'encomendas'}</small></div>
+      <div class="stat"><span class="label">Gastos do mês</span><b style="color:var(--bad)">${brl(f.gastos)}</b><small class="muted">compras lançadas em Gastos</small></div>
+      <div class="stat"><span class="label">Estoque usado</span><b>${brl(f.estoque)}</b><small class="muted">o que saiu nas encomendas</small></div>
+      <div class="stat"><span class="label">Resultado do mês</span><b style="color:var(${res>=0?'--ok':'--bad'})">${brl(res)}</b><small class="muted">faturado − gastos</small></div>
+    </div>
+    <div class="fgrid">
+      <div class="panel"><h3>Entradas</h3><dl class="kv">
+        <dt>Faturado</dt><dd>${brl(f.fat)}</dd>
+        <dt>Já recebido</dt><dd style="color:var(--ok)">${brl(f.rec)}</dd>
+        <dt>A receber</dt><dd style="color:var(${f.receber>0.004?'--warn':'--fg'})">${brl(f.receber)}</dd>
+        <dt>Encomendas</dt><dd>${f.encs.length}</dd>
+        <dt>Unidades vendidas</dt><dd>${fmt(f.unid,0)}</dd>
+        <dt>Ticket médio</dt><dd>${brl(f.encs.length?f.fat/f.encs.length:0)}</dd>
+        <dt class="sum">Custo de produção das encomendas</dt><dd class="sum">${brl(f.custo)}</dd>
+        <dt>Lucro estimado das encomendas</dt><dd style="color:var(${f.lucro>=0?'--ok':'--bad'})">${brl(f.lucro)}</dd>
+      </dl><p class="muted small">O lucro estimado usa o custo das receitas (ingredientes, embalagem, gás e mão de obra). O resultado do mês compara o faturado com o que foi pago em Gastos.</p></div>
+      <div class="panel"><h3>Saídas</h3>
+        <div class="bar"><span class="label">Gastos por categoria</span><strong>${brl(f.gastos)}</strong></div>${barras(f.porCat)}
+        ${Object.keys(f.porPag).length?`<div class="label">Por forma de pagamento</div><div class="chips">${Object.entries(f.porPag).map(([k,v])=>`<span class="chip">${esc(k)} ${brl(v)}</span>`).join('')}</div>`:''}
+      </div>
+      <div class="panel"><h3>Estoque usado nas encomendas</h3>
+        ${f.itensUsados.length?`<ul class="ing">${f.itensUsados.slice(0,12).map(x=>`<li><span>${esc(x.nome)}</span><span class="muted">${fmtQtd(x.q,x.un)}</span><span>${brl(x.v)}</span></li>`).join('')}</ul>
+        ${f.itensUsados.length>12?`<p class="muted small">+ ${f.itensUsados.length-12} itens menores</p>`:''}
+        <div class="bar"><span class="label">Total</span><strong>${brl(f.estoque)}</strong></div>`:'<p class="muted small">Nenhum item saiu do estoque em encomendas deste mês.</p>'}
+      </div>
+      <div class="panel"><h3>Mais vendidos</h3>
+        ${f.vendidos.length?`<ul class="ing">${f.vendidos.slice(0,10).map(([n,v])=>`<li><span>${esc(n)}</span><span class="muted">${fmt(v.un,2)} un</span><span>${brl(v.val)}</span></li>`).join('')}</ul>`:'<p class="muted small">Nenhuma encomenda neste mês.</p>'}
+      </div>
+    </div>
+    <div class="panel"><h3>Últimos 6 meses</h3>${historicoHTML(mes)}</div>`;
+}
+function historicoHTML(mes){
+  const ms=Array.from({length:6},(_,k)=>somaMes(mes,k-5)).map(m=>{const f=fechamento(m);return {m,fat:f.fat,g:f.gastos,r:f.resultado};});
+  const max=Math.max(1,...ms.map(x=>Math.max(x.fat,x.g)));
+  return `<div class="hist" role="table">
+    <div class="hrow hhead" role="row"><span>Mês</span><span>Faturado</span><span>Gastos</span><span style="text-align:right">Resultado</span></div>
+    ${ms.map(x=>`<div class="hrow${x.m===mes?' cur':''}" role="row"><span>${nomeMes(x.m).replace(/ de /,' ')}</span>
+      <span class="hb"><i class="in" style="width:${x.fat/max*100}%"></i><em>${brl(x.fat)}</em></span>
+      <span class="hb"><i class="out" style="width:${x.g/max*100}%"></i><em>${brl(x.g)}</em></span>
+      <span style="text-align:right;font-weight:700;color:var(${x.r>=0?'--ok':'--bad'})">${brl(x.r)}</span></div>`).join('')}</div>`;
 }
 
 // ---------- Gastos ----------
@@ -1062,6 +1167,12 @@ document.addEventListener('submit',async e=>{
   }
 });
 $('#g-mes').addEventListener('change',renderGastos);
+$('#enc-mesnav').innerHTML=mesNavHTML('enc-mes');$('#f-mesnav').innerHTML=mesNavHTML('f-mes');
+$('#enc-mes').value=hoje().slice(0,7);$('#f-mes').value=hoje().slice(0,7);
+$('#enc-mes').addEventListener('change',renderEncomendas);$('#f-mes').addEventListener('change',renderFechamento);
+document.addEventListener('click',e=>{const b=e.target.closest('button[data-mes]');if(!b)return;const inp=document.getElementById(b.dataset.mes);
+  inp.value=somaMes(inp.value||hoje().slice(0,7),+b.dataset.k);inp.dispatchEvent(new Event('change'));});
+$('#ins-busca').addEventListener('input',e=>{S.insBusca=e.target.value;renderInsumos();});
 $('#importar').addEventListener('change',async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
   let d;try{d=JSON.parse(await f.text());}catch(err){toast('Arquivo inválido.');return;}
