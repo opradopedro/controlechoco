@@ -180,6 +180,9 @@ textarea:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
 @media (max-width:520px){.erow{grid-template-columns:minmax(0,1fr) 70px 80px}.erow .c{grid-column:1/3}}
 .card.enc.off{opacity:.6}
 .card.enc .head .chips{flex-direction:column;align-items:flex-end}
+.nd{display:flex;align-items:flex-start;gap:6px;cursor:pointer;min-width:0}
+.nd input{width:auto;margin-top:3px;accent-color:var(--wine);flex:none}
+.nd-off .nd span,.nd-off>span:nth-child(2){color:var(--muted);text-decoration:line-through}
 </style>
 </head><body>
 <div class="wrap">
@@ -638,6 +641,8 @@ function consumo(itens){
   for(const k in u)u[k]=Math.round(u[k]*1000)/1000;
   return u;
 }
+// Itens que a encomenda NÃO deve tirar do estoque (ex.: já tinha pronto, ganhou, comprou à parte)
+function consumoDescontado(o){const u=consumo(o.itens),fora=o.naoDescontar||[];fora.forEach(k=>delete u[k]);return u;}
 function resumoEnc(o){
   let venda=0,custo=0,sug=0;
   (o.itens||[]).forEach(it=>{const r=S.receitas[it.receitaId];const q=num(it.qtd);venda+=q*num(it.preco);
@@ -748,11 +753,11 @@ function updateEncCalc(){
   const el=$('#o-calc');if(!el)return;const d=ENC.data;const r=resumoEnc(d);
   document.querySelectorAll('#o-itens .row[data-ek]').forEach(row=>{const it=d.itens[+row.dataset.ek];if(it){row.querySelector('[data-sub]').textContent=brl(num(it.qtd)*num(it.preco));
     const h=row.querySelector('[data-hint]'),r=S.receitas[it.receitaId];if(h)h.textContent=r&&num(it.qtd)?`${fmt(num(it.qtd),0)} × ${brl(num(it.preco))}`:'';}});
-  const novo=consumo(d.itens), velho=ENC.id?(d.consumo||{}):{};
+  const novo=consumo(d.itens), velho=ENC.id?(d.consumo||{}):{}, fora=d.naoDescontar||[];
   const linhas=Object.entries(novo).map(([iid,q])=>{const i=S.insumos[iid];if(!i)return '';
-    const disp=num(i.estoque)+(velho[iid]||0);const falta=q-disp;
-    return `<li><span>${esc(i.nome)}</span><span class="muted">${fmtQtd(q,i.unidade)}</span><span style="color:var(${falta>1e-9?'--bad':'--muted'})">${falta>1e-9?'faltam '+fmtQtd(falta,i.unidade):'ok'}</span></li>`;}).join('');
-  const faltam=Object.entries(novo).filter(([iid,q])=>{const i=S.insumos[iid];return i&&q-(num(i.estoque)+(velho[iid]||0))>1e-9;}).length;
+    const desc=!fora.includes(iid);const disp=num(i.estoque)+(velho[iid]||0);const falta=desc?q-disp:0;
+    return `<li class="${desc?'':'nd-off'}"><label class="nd"><input type="checkbox" data-nd="${iid}" ${desc?'checked':''} aria-label="Descontar ${esc(i.nome)} do estoque"><span>${esc(i.nome)}</span></label><span class="muted">${fmtQtd(q,i.unidade)}</span><span style="color:var(${falta>1e-9?'--bad':'--muted'})">${!desc?'não desconta':falta>1e-9?'faltam '+fmtQtd(falta,i.unidade):'ok'}</span></li>`;}).join('');
+  const faltam=Object.entries(novo).filter(([iid,q])=>{const i=S.insumos[iid];return i&&!fora.includes(iid)&&q-(num(i.estoque)+(velho[iid]||0))>1e-9;}).length;
   const dif=r.total-r.sugerido;
   const difTxt=Math.abs(dif)<0.005?'<span class="chip ok">Igual ao sugerido</span>':dif<0?`<span class="chip warn">${brl(-dif)} abaixo do sugerido</span>`:`<span class="chip ok">${brl(dif)} acima do sugerido</span>`;
   el.innerHTML=`<div class="label">Valor sugerido para cobrar</div><strong class="big">${brl(r.sugerido)}</strong>
@@ -767,6 +772,7 @@ function updateEncCalc(){
       <dt class="sum">Custo de produção</dt><dd class="sum">${brl(r.custo)}</dd>
       <dt>Lucro estimado</dt><dd style="color:var(--ok)">${brl(r.lucro)}</dd></dl>
     <div class="label" style="margin-top:8px">Vai sair do estoque</div>
+    ${linhas?'<p class="muted small">Desmarque o que não deve ser descontado. O custo de produção continua contando tudo.</p>':''}
     ${linhas?`<ul class="ing">${linhas}</ul>`:'<p class="muted small">Escolha as receitas para ver o consumo.</p>'}
     ${faltam?`<p class="small" style="color:var(--bad)">${faltam} item(ns) sem estoque suficiente. Dá para lançar mesmo assim; o estoque fica negativo até você registrar a compra.</p>`:''}`;
 }
@@ -777,7 +783,8 @@ async function salvarEnc(){
   if(!d.itens.length){toast('Adicione pelo menos uma receita com quantidade.');return;}
   d.cliente=String(d.cliente).trim();d.taxaEntrega=num(d.taxaEntrega);d.desconto=num(d.desconto);d.valorCobrado=String(d.valorCobrado??'').trim()===''?'':num(d.valorCobrado);d.pago=!!d.pago;
   const velho=ENC.id?(S.encomendas[ENC.id].consumo||{}):{};
-  const novo=d.status==='Cancelada'?{}:consumo(d.itens);
+  d.naoDescontar=(d.naoDescontar||[]).filter(k=>k in consumo(d.itens));
+  const novo=d.status==='Cancelada'?{}:consumoDescontado(d);
   d.consumo=novo;if(!d.criadoEm)d.criadoEm=new Date().toISOString();
   const id=ENC.id||newId('encomendas');
   const btn=document.querySelector('[data-act="enc-salvar"]');if(btn)btn.disabled=true;
@@ -1036,6 +1043,7 @@ $('#importar').addEventListener('change',async e=>{
 });
 function encInput(e){
   if(!ENC)return;const t=e.target;
+  if(t.dataset.nd){const l=new Set(ENC.data.naoDescontar||[]);if(t.checked)l.delete(t.dataset.nd);else l.add(t.dataset.nd);ENC.data.naoDescontar=[...l];updateEncCalc();return;}
   if(t.dataset.eo){ENC.data[t.dataset.eo]=t.type==='checkbox'?t.checked:t.value;updateEncCalc();return;}
   const row=t.closest('.row[data-ek]');if(!row||!t.dataset.ef)return;
   const it=ENC.data.itens[+row.dataset.ek];
