@@ -199,6 +199,28 @@ textarea:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
 .nd{display:flex;align-items:flex-start;gap:6px;cursor:pointer;min-width:0}
 .nd input{width:auto;margin-top:3px;accent-color:var(--wine);flex:none}
 .nd-off .nd span,.nd-off>span:nth-child(2){color:var(--muted);text-decoration:line-through}
+.passos{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;font-size:.9rem}
+.cozinha{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(24px + env(safe-area-inset-bottom,0px))}
+.coz-in{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.coz-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.coz-top h2{font-size:1.9rem;color:var(--wine)}
+.coz-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:24px;align-items:start}
+@media (max-width:760px){.coz-grid{grid-template-columns:minmax(0,1fr)}}
+.coz-grid section{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.coz-ing{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column}
+.coz-ing li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:1.02rem}
+.coz-ing li:last-child{border-bottom:0}
+.coz-ing label{display:flex;align-items:center;gap:10px;min-width:0;cursor:pointer}
+.coz-ing input{width:20px;height:20px;accent-color:var(--wine);flex:none}
+.coz-ing b{white-space:nowrap;font-size:1.05rem}
+.coz-ing li.feito span,.coz-ing li.feito b{text-decoration:line-through;color:var(--muted)}
+.coz-passos{list-style:none;margin:8px 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.coz-passos button{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;background:var(--sunk);border:1px solid transparent;border-radius:10px;padding:12px 14px;font:inherit;font-size:1.05rem;line-height:1.5;color:var(--fg);cursor:pointer}
+.coz-passos .n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--wine);color:var(--wine-ink);display:grid;place-items:center;font-weight:700;font-size:.9rem}
+.coz-passos li.feito button{background:var(--ok-soft);color:var(--muted)}
+.coz-passos li.feito .n{background:var(--ok)}
+.coz-passos li.feito button span:last-child{text-decoration:line-through}
+.coz-passos button:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
 </style>
 </head><body>
 <div class="wrap">
@@ -343,6 +365,7 @@ textarea:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
     </div>
   </section>
 </div>
+<div id="cozinha" class="cozinha" hidden role="dialog" aria-modal="true" aria-label="Modo de fazer"></div>
 <div id="toast" hidden></div>
 
 <script>
@@ -489,8 +512,57 @@ function fichaHTML(r){
     return `<li><span>${esc(i.nome)}</span><span class="muted">${fmtQtd(q,i.unidade)}</span><span>${brl(q*custoUn(i))}</span></li>`;}).join('');
   return `<ul class="ing">${li(r.itens)||'<li class="muted">Sem ingredientes</li>'}</ul>
     ${(r.embalagens||[]).length?`<div class="label" style="margin-top:10px">Embalagem</div><ul class="ing">${li(embLote(r))}</ul>`:''}
-    ${r.preparo?`<div class="label" style="margin-top:10px">Modo de preparo</div><p class="prep">${esc(r.preparo)}</p>`:''}
     ${r.obs?`<div class="label" style="margin-top:10px">Observações</div><p class="prep">${esc(r.obs)}</p>`:''}`;
+}
+// ---------- Modo de fazer ----------
+// Cada linha do texto vira um passo; numeração e marcadores no começo da linha são ignorados.
+// Texto corrido numa linha só é dividido por frases.
+function passosDe(txt){
+  let l=String(txt||'').split(/\r?\n/).map(x=>x.replace(/^\s*(\d+\s*[.)º°-]|[-•*])\s*/,'').trim()).filter(Boolean);
+  if(l.length===1&&l[0].length>140)l=l[0].split(/(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/).map(x=>x.trim()).filter(Boolean);
+  return l;
+}
+function modoFazerHTML(id,r){
+  const p=passosDe(r.preparo);
+  return `<details><summary>Modo de fazer</summary>
+    ${p.length?`<ol class="passos">${p.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`:`<p class="muted small">Ainda sem modo de fazer. Toque em <b>Editar</b> e escreva o passo a passo.</p>`}
+    <button class="btn primary" data-act="cozinhar" data-id="${id}" style="margin-top:10px">Abrir para fazer agora</button>
+  </details>`;
+}
+let COZ=null, wakeLock=null;
+async function manterTelaAcesa(on){
+  try{if(on&&'wakeLock' in navigator){wakeLock=await navigator.wakeLock.request('screen');}else if(!on&&wakeLock){await wakeLock.release();wakeLock=null;}}catch(e){}
+}
+function abrirCozinha(id){COZ={id,mult:1,ing:{},passo:{}};renderCozinha();document.body.style.overflow='hidden';manterTelaAcesa(true);}
+function fecharCozinha(){COZ=null;$('#cozinha').hidden=true;document.body.style.overflow='';manterTelaAcesa(false);}
+function renderCozinha(){
+  const el=$('#cozinha');if(!COZ){el.hidden=true;return;}
+  const r=S.receitas[COZ.id];if(!r){fecharCozinha();return;}
+  const m=COZ.mult, p=passosDe(r.preparo), rend=num(r.rendimento)*m;
+  const linha=(it,k,tipo)=>{const i=S.insumos[it.id];if(!i)return '';const key=tipo+k,ok=COZ.ing[key];
+    return `<li class="${ok?'feito':''}"><label><input type="checkbox" data-coz-ing="${key}" ${ok?'checked':''}><span>${esc(i.nome)}</span></label><b>${fmtQtd(num(it.qtd)*m,i.unidade)}</b></li>`;};
+  const feitos=p.filter((_,k)=>COZ.passo[k]).length;
+  el.innerHTML=`<div class="coz-in">
+    <div class="coz-top">
+      <div style="min-width:0"><span class="label">Modo de fazer</span><h2>${esc(r.nome)}</h2>
+        <p class="muted small">Rende ${fmt(rend,1)} un${num(r.pesoUn)?' de '+fmt(num(r.pesoUn),0)+' g':''}${num(r.minutos)?' · '+fmt(num(r.minutos)*m,0)+' min de trabalho':''}${num(r.tempoForno)?' · + '+fmt(num(r.tempoForno),0)+' min forno/geladeira':''}</p></div>
+      <button class="btn" data-act="coz-fechar">Fechar</button>
+    </div>
+    <div class="bar" style="align-items:center"><span class="label">Quantas receitas vai fazer</span>
+      <div class="seg">${[0.5,1,2,3,4].map(x=>`<button data-coz-mult="${x}" aria-pressed="${x===m}">${x===0.5?'½':x+'×'}</button>`).join('')}</div></div>
+    <div class="coz-grid">
+      <section><h3>Ingredientes</h3><ul class="coz-ing">${(r.itens||[]).map((it,k)=>linha(it,k,'i')).join('')||'<li class="muted">Sem ingredientes cadastrados</li>'}</ul>
+        ${(r.embalagens||[]).length?`<h3 style="margin-top:14px">Embalagem</h3><ul class="coz-ing">${embLote(r).map((it,k)=>linha(it,k,'e')).join('')}</ul>`:''}
+        ${(r.alergenos||[]).length?`<p class="small muted" style="margin-top:10px">Contém: ${r.alergenos.map(a=>esc(a.toLowerCase())).join(', ')}</p>`:''}
+      </section>
+      <section><div class="bar"><h3>Passo a passo</h3>${p.length?`<span class="muted small">${feitos} de ${p.length}</span>`:''}</div>
+        ${p.length?`<ol class="coz-passos">${p.map((x,k)=>`<li class="${COZ.passo[k]?'feito':''}"><button data-coz-passo="${k}" aria-pressed="${!!COZ.passo[k]}"><span class="n">${k+1}</span><span>${esc(x)}</span></button></li>`).join('')}</ol>
+          <p class="muted small">Toque num passo para marcar como feito.</p>`:'<p class="muted small">Esta receita ainda não tem modo de fazer. Feche e use Editar para escrever o passo a passo.</p>'}
+        ${r.obs?`<div class="notice" style="margin-top:12px"><span>${esc(r.obs)}</span></div>`:''}
+        ${r.validadeDias?`<p class="small muted" style="margin-top:10px">Validade: ${fmt(num(r.validadeDias),0)} dias${r.armazenamento?' · '+esc(r.armazenamento):''}</p>`:''}
+      </section>
+    </div></div>`;
+  el.hidden=false;
 }
 function cardHTML(id,r){
   const c=calc(r);const peso=num(r.pesoUn);
@@ -518,6 +590,7 @@ function cardHTML(id,r){
         <dt>Margem${c.taxa?' + taxa':''}</dt><dd>${pct(c.margem)}${c.taxa?' + '+pct(c.taxa):''}</dd>
       </dl></details>
     <details><summary>Ficha técnica</summary>${fichaHTML(r)}</details>
+    ${modoFazerHTML(id,r)}
     <div class="actions">
       <button class="btn" data-act="editar-receita" data-id="${id}">Editar</button>
       <button class="btn ghost" data-act="duplicar-receita" data-id="${id}" title="Cria uma receita nova com tudo desta">Duplicar</button>
@@ -595,8 +668,8 @@ function renderEditor(){
         </div><p class="muted small" id="e-pesolote"></p></fieldset>
         <fieldset><legend>Ingredientes do lote</legend><div class="rows" id="e-itens">${rowsHTML('itens')}</div></fieldset>
         <fieldset><legend>Embalagem da receita</legend><p class="muted small">Quantidade usada na receita inteira. Ex.: rende 30 doces, use 30 forminhas e 1 caixa.</p><div class="rows" id="e-emb">${rowsHTML('embalagens')}</div></fieldset>
-        <fieldset><legend>Preparo e alergênicos</legend>
-          <label class="field"><span>Modo de preparo</span><textarea id="e-prep" data-e="preparo" rows="4" placeholder="Passo a passo, ponto da massa, temperatura do forno…">${esc(d.preparo)}</textarea></label>
+        <fieldset><legend>Modo de fazer e alergênicos</legend>
+          <label class="field"><span>Modo de fazer (um passo por linha)</span><textarea id="e-prep" data-e="preparo" rows="7" placeholder="Ex.:&#10;Em uma panela, misture o leite condensado, o creme de leite e a manteiga.&#10;Cozinhe em fogo baixo, mexendo sempre, até desgrudar do fundo.&#10;Despeje num prato untado e deixe esfriar.&#10;Enrole bolinhas de 15 g e passe no coco.">${esc(d.preparo)}</textarea></label>
           <div class="field"><span>Contém</span><div class="checks">${ALERG.map(a=>`<label><input type="checkbox" data-alerg="${esc(a)}" ${d.alergenos.includes(a)?'checked':''}> ${esc(a)}</label>`).join('')}</div></div>
           <label class="field"><span>Observações</span><input id="e-obs" data-e="obs" value="${esc(d.obs)}" placeholder="Ex.: servir gelado, não congelar"></label>
         </fieldset>
@@ -1077,6 +1150,8 @@ document.addEventListener('click',async e=>{
   if(b.hasAttribute('data-confirm')&&!armed(b))return;
   if(act==='nova-receita')openEditor(null);
   else if(act==='editar-receita')openEditor(id);
+  else if(act==='cozinhar')abrirCozinha(id);
+  else if(act==='coz-fechar')fecharCozinha();
   else if(act==='duplicar-receita'){openEditor(id,true);toast('Cópia aberta. Ajuste o que quiser e salve.');setTimeout(()=>{const n=$('#e-nome');if(n){n.focus();n.select();}},50);}
   else if(act==='cancelar-receita'){E=null;renderEditor();}
   else if(act==='salvar-receita')salvarReceita();
@@ -1172,6 +1247,12 @@ $('#enc-mes').value=hoje().slice(0,7);$('#f-mes').value=hoje().slice(0,7);
 $('#enc-mes').addEventListener('change',renderEncomendas);$('#f-mes').addEventListener('change',renderFechamento);
 document.addEventListener('click',e=>{const b=e.target.closest('button[data-mes]');if(!b)return;const inp=document.getElementById(b.dataset.mes);
   inp.value=somaMes(inp.value||hoje().slice(0,7),+b.dataset.k);inp.dispatchEvent(new Event('change'));});
+$('#cozinha').addEventListener('click',e=>{if(!COZ)return;
+  const m=e.target.closest('[data-coz-mult]');if(m){COZ.mult=+m.dataset.cozMult;renderCozinha();return;}
+  const p=e.target.closest('[data-coz-passo]');if(p){const k=p.dataset.cozPasso;COZ.passo[k]=!COZ.passo[k];renderCozinha();return;}});
+$('#cozinha').addEventListener('change',e=>{const t=e.target;if(COZ&&t.dataset.cozIng){COZ.ing[t.dataset.cozIng]=t.checked;renderCozinha();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&COZ)fecharCozinha();});
+document.addEventListener('visibilitychange',()=>{if(COZ&&document.visibilityState==='visible')manterTelaAcesa(true);});
 $('#ins-busca').addEventListener('input',e=>{S.insBusca=e.target.value;renderInsumos();});
 $('#importar').addEventListener('change',async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
